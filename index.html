@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Колесо подарков</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <div class="hero">
+      <div class="badge">🎁 Подарок для каждого клиента</div>
+      <h1>Крутите колесо</h1>
+      <p>Выиграйте приятный бонус для ремонта уже сегодня</p>
+    </div>
+
+    <div class="wheel-card">
+      <div class="shine"></div>
+      <div class="pointer"></div>
+
+      <div class="wheel-wrap">
+        <canvas id="wheel" width="360" height="360"></canvas>
+
+        <button id="spinBtn" class="spin-btn">
+          <span>Крутить</span>
+        </button>
+      </div>
+
+      <div class="hint">Нажмите на кнопку в центре колеса</div>
+    </div>
+
+    <div id="resultPanel" class="result-panel hidden">
+      <div class="gift-icon">🎁</div>
+      <div class="small-title">Ваш подарок</div>
+      <div id="prizeText" class="prize-text"></div>
+
+      <button id="claimBtn" class="primary-btn">
+        Получить подарок
+      </button>
+    </div>
+
+    <div id="formPanel" class="form-panel hidden">
+      <h2>Куда связаться?</h2>
+      <p>Оставьте имя и телефон — мы скоро напишем или позвоним.</p>
+
+      <label>
+        Ваше имя
+        <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
+      </label>
+
+      <label>
+        Телефон
+        <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
+      </label>
+
+      <button id="sendBtn" class="primary-btn">
+        Подтвердить
+      </button>
+
+      <div id="errorText" class="error-text"></div>
+    </div>
+
+    <div id="successPanel" class="success-panel hidden">
+      <div class="success-icon">✨</div>
+      <h2>Спасибо!</h2>
+      <p>Заявка принята. С вами скоро свяжутся.</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
