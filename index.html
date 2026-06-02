@@ -4,99 +4,136 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Колесо подарков</title>
+  <title>ELIT REMONT — Колесо подарков</title>
 
   <link rel="stylesheet" href="style.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="bg">
-    <div class="bg-grid"></div>
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
+  <div class="site-bg">
+    <div class="gold-mesh"></div>
+    <div class="light-orb orb-a"></div>
+    <div class="light-orb orb-b"></div>
+    <div class="light-orb orb-c"></div>
+    <div class="noise"></div>
   </div>
 
   <main class="app">
-    <header class="hero">
-      <div class="hero-badge">
-        <span>🎁</span>
-        <b>Подарок для каждого клиента</b>
+    <section id="welcomeScreen" class="screen screen-active">
+      <div class="brand-row welcome-brand">
+        <div class="logo-mark">ER</div>
+        <div>
+          <div class="brand-name">ELIT REMONT</div>
+          <div class="brand-subtitle">Премиальная акция для клиентов</div>
+        </div>
       </div>
 
-      <h1>Колесо подарков</h1>
-      <p>Испытайте удачу и получите приятный бонус для ремонта</p>
-    </header>
+      <div class="welcome-card glass">
+        <div class="welcome-badge">🎁 Подарок для каждого клиента</div>
 
-    <section class="wheel-card glass">
-      <div class="card-top">
-        <div class="pill">Каждый играет — каждый выигрывает</div>
-      </div>
+        <h1>Колесо подарков</h1>
 
-      <div class="wheel-stage">
-        <div class="pointer"></div>
-        <div class="wheel-shadow"></div>
+        <p>
+          Крутите рулетку и заберите бонус для ремонта.
+          Каждый участник получает подарок.
+        </p>
 
-        <canvas id="wheel" width="380" height="380"></canvas>
+        <div class="premium-list">
+          <div><span>01</span> Гарантированный приз</div>
+          <div><span>02</span> Только одна попытка</div>
+          <div><span>03</span> Менеджер свяжется с вами</div>
+        </div>
 
-        <button id="spinBtn" class="spin-btn">
-          <span>Крутить</span>
-          <small>1 попытка</small>
+        <button id="startBtn" class="primary-btn big-btn">
+          Открыть колесо
+        </button>
+
+        <button id="resetDemoBtn" class="ghost-btn">
+          Сбросить демо-попытку
         </button>
       </div>
-
-      <div class="under-note">
-        Нажмите кнопку в центре, чтобы прокрутить колесо
-      </div>
     </section>
 
-    <section id="resultCard" class="panel glass hidden">
-      <div class="panel-icon">🎉</div>
-      <div class="panel-kicker">Ваш подарок</div>
-      <div id="prizeText" class="panel-title"></div>
+    <section id="gameScreen" class="screen">
+      <header class="topbar">
+        <div class="brand-row compact">
+          <div class="logo-mark small">ER</div>
+          <div>
+            <div class="brand-name">ELIT REMONT</div>
+            <div class="brand-subtitle">Колесо подарков</div>
+          </div>
+        </div>
 
-      <p class="panel-text">
-        Отлично! Оставьте контакты, чтобы мы закрепили подарок за вами.
-      </p>
+        <button id="soundBtn" class="sound-btn" aria-label="Звук">🔊</button>
+      </header>
 
-      <button id="claimBtn" class="primary-btn">
-        Получить подарок
-      </button>
-    </section>
+      <section id="wheelPanel" class="wheel-panel glass">
+        <div class="gold-pill">Каждый играет — каждый выигрывает</div>
 
-    <section id="formCard" class="panel glass hidden">
-      <div class="panel-kicker">Контактные данные</div>
-      <h2>Куда с вами связаться?</h2>
+        <div class="wheel-stage">
+          <div class="wheel-glow"></div>
+          <div class="pointer-wrap">
+            <div class="pointer-gem"></div>
+            <div class="pointer"></div>
+          </div>
 
-      <p class="panel-text">
-        Оставьте имя и номер телефона — мы скоро с вами свяжемся.
-      </p>
+          <canvas id="wheel" width="520" height="520"></canvas>
 
-      <div class="input-group">
-        <label for="nameInput">Ваше имя</label>
-        <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
-      </div>
+          <button id="spinBtn" class="spin-btn">
+            <span>Крутить</span>
+            <small>1 попытка</small>
+          </button>
+        </div>
 
-      <div class="input-group">
-        <label for="phoneInput">Телефон</label>
-        <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
-      </div>
+        <div id="statusText" class="status-text">
+          Нажмите кнопку в центре колеса
+        </div>
+      </section>
 
-      <div id="errorText" class="error-text"></div>
+      <section id="prizePanel" class="prize-panel glass hidden">
+        <div class="prize-icon">🎁</div>
+        <div class="section-kicker">Ваш подарок</div>
+        <h2 id="prizeTitle">Подарок</h2>
+        <p>
+          Отлично! Нажмите кнопку ниже, чтобы закрепить подарок за собой.
+        </p>
+        <button id="claimBtn" class="primary-btn">
+          Получить подарок
+        </button>
+      </section>
 
-      <button id="sendBtn" class="primary-btn">
-        Подтвердить
-      </button>
-    </section>
+      <section id="formPanel" class="form-panel glass hidden">
+        <div class="section-kicker">Контактные данные</div>
+        <h2>Куда с вами связаться?</h2>
+        <p>
+          Оставьте имя и номер телефона. В версии Telegram-бота эти данные уйдут админу.
+        </p>
 
-    <section id="successCard" class="panel glass success-card hidden">
-      <div class="panel-icon">✨</div>
-      <div class="panel-kicker">Готово</div>
-      <h2>Спасибо!</h2>
+        <label class="input-group">
+          <span>Ваше имя</span>
+          <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
+        </label>
 
-      <p class="panel-text">
-        Ваша заявка принята. С вами скоро свяжутся.
-      </p>
+        <label class="input-group">
+          <span>Телефон</span>
+          <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
+        </label>
+
+        <div id="errorText" class="error-text"></div>
+
+        <button id="sendBtn" class="primary-btn">
+          Подтвердить
+        </button>
+      </section>
+
+      <section id="successPanel" class="success-panel glass hidden">
+        <div class="success-icon">✨</div>
+        <div class="section-kicker">Готово</div>
+        <h2>Спасибо!</h2>
+        <p>
+          Заявка принята. С вами скоро свяжутся.
+        </p>
+      </section>
     </section>
   </main>
 

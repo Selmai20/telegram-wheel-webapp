@@ -5,59 +5,100 @@ if (tg) {
   tg.expand();
 }
 
+const CONFIG = {
+  company: "ELIT REMONT",
+  variant: "premium-gold",
+  sourceDefault: "github-pages-demo",
+  prizes: [
+    { label: "Монтаж натяжных потолков в подарок", short: "Потолки", emoji: "🏠", weight: 5 },
+    { label: "От 3 до 5 м² плитки в подарок", short: "Плитка", emoji: "🧱", weight: 8 },
+    { label: "Скидка на электрику", short: "Электрика", emoji: "💡", weight: 15 },
+    { label: "Бесплатная консультация", short: "Консультация", emoji: "💬", weight: 22 },
+    { label: "Подарок к ремонту", short: "Подарок", emoji: "🎁", weight: 14 },
+    { label: "Скидка на сантехнику", short: "Сантехника", emoji: "🚿", weight: 14 },
+    { label: "Бесплатный замер", short: "Замер", emoji: "📏", weight: 17 },
+    { label: "Бонус на материалы", short: "Материалы", emoji: "🛠️", weight: 5 }
+  ],
+  colors: [
+    "#2A1A12",
+    "#D8B25D",
+    "#5A3B1A",
+    "#FFF1B6",
+    "#8E672A",
+    "#1A1112",
+    "#C9973E",
+    "#F6D98B"
+  ]
+};
+
+const STORAGE_LEAD_KEY = `wheel_${CONFIG.variant}_lead`;
+const STORAGE_SPIN_KEY = `wheel_${CONFIG.variant}_spun`;
+const STORAGE_LEADS_KEY = `wheel_${CONFIG.variant}_leads`;
+
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
 
-const spinBtn = document.getElementById("spinBtn");
-const resultCard = document.getElementById("resultCard");
-const formCard = document.getElementById("formCard");
-const successCard = document.getElementById("successCard");
+const welcomeScreen = document.getElementById("welcomeScreen");
+const gameScreen = document.getElementById("gameScreen");
 
-const prizeText = document.getElementById("prizeText");
+const startBtn = document.getElementById("startBtn");
+const resetDemoBtn = document.getElementById("resetDemoBtn");
+const soundBtn = document.getElementById("soundBtn");
+
+const wheelPanel = document.getElementById("wheelPanel");
+const prizePanel = document.getElementById("prizePanel");
+const formPanel = document.getElementById("formPanel");
+const successPanel = document.getElementById("successPanel");
+
+const spinBtn = document.getElementById("spinBtn");
+const statusText = document.getElementById("statusText");
+const prizeTitle = document.getElementById("prizeTitle");
 const claimBtn = document.getElementById("claimBtn");
-const sendBtn = document.getElementById("sendBtn");
 
 const nameInput = document.getElementById("nameInput");
 const phoneInput = document.getElementById("phoneInput");
 const errorText = document.getElementById("errorText");
+const sendBtn = document.getElementById("sendBtn");
+
 const confetti = document.getElementById("confetti");
-
-const prizes = [
-  { label: "Монтаж натяжных потолков в подарок", short: "Потолки", emoji: "🏠" },
-  { label: "От 3 до 5 м² плитки в подарок", short: "Плитка", emoji: "🧱" },
-  { label: "Скидка на электрику", short: "Электрика", emoji: "💡" },
-  { label: "Бесплатная консультация", short: "Консультация", emoji: "💬" },
-  { label: "Подарок к ремонту", short: "Подарок", emoji: "🎁" },
-  { label: "Скидка на сантехнику", short: "Сантехника", emoji: "🚿" },
-  { label: "Бесплатный замер", short: "Замер", emoji: "📏" },
-  { label: "Бонус на материалы", short: "Материалы", emoji: "🛠️" }
-];
-
-const colors = [
-  "#FFB703",
-  "#FB8500",
-  "#FF006E",
-  "#8338EC",
-  "#3A86FF",
-  "#06D6A0",
-  "#FFD166",
-  "#EF476F"
-];
 
 let rotation = 0;
 let isSpinning = false;
 let selectedPrize = null;
+let soundEnabled = true;
+let audioContext = null;
+let lastTickIndex = -1;
 
-function hidePanels() {
-  resultCard.classList.add("hidden");
-  formCard.classList.add("hidden");
-  successCard.classList.add("hidden");
+function getSource() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("utm_source") || params.get("source") || params.get("ref") || CONFIG.sourceDefault;
 }
 
-function showPanel(panel) {
-  hidePanels();
-  panel.classList.remove("hidden");
-  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+function setScreen(screen) {
+  welcomeScreen.classList.remove("screen-active");
+  gameScreen.classList.remove("screen-active");
+  screen.classList.add("screen-active");
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function bounceSwitch(fromPanel, toPanel) {
+  fromPanel.classList.remove("enter-up");
+  fromPanel.classList.add("exit-up");
+
+  await wait(680);
+
+  fromPanel.classList.add("hidden");
+  fromPanel.classList.remove("exit-up");
+
+  toPanel.classList.remove("hidden");
+  toPanel.classList.add("enter-up");
+
+  await wait(760);
+
+  toPanel.classList.remove("enter-up");
 }
 
 function easeOutQuint(t) {
@@ -67,6 +108,7 @@ function easeOutQuint(t) {
 function easeOutBack(t) {
   const c1 = 1.70158;
   const c3 = c1 + 1;
+
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
@@ -77,124 +119,237 @@ function getNormalizedRotation(value) {
 
 function getPrizeIndexByRotation(finalRotation) {
   const full = Math.PI * 2;
-  const segmentAngle = full / prizes.length;
-
+  const segmentAngle = full / CONFIG.prizes.length;
   const normalized = getNormalizedRotation(finalRotation);
   const pointerAngle = (Math.PI * 1.5 - normalized + full) % full;
 
   return Math.floor(pointerAngle / segmentAngle);
 }
 
-function drawCenterCap(x, y) {
-  ctx.beginPath();
-  ctx.arc(x, y, 62, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.fill();
+function weightedRandomPrizeIndex() {
+  const total = CONFIG.prizes.reduce((sum, prize) => sum + prize.weight, 0);
+  let roll = Math.random() * total;
 
-  ctx.beginPath();
-  ctx.arc(x, y, 49, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255, 234, 170, 0.85)";
-  ctx.fill();
+  for (let i = 0; i < CONFIG.prizes.length; i++) {
+    roll -= CONFIG.prizes[i].weight;
 
-  ctx.beginPath();
-  ctx.arc(x, y, 43, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.96)";
-  ctx.fill();
+    if (roll <= 0) {
+      return i;
+    }
+  }
+
+  return CONFIG.prizes.length - 1;
 }
 
 function drawWheel() {
   const size = canvas.width;
   const center = size / 2;
-  const radius = size / 2 - 12;
-  const segmentAngle = (Math.PI * 2) / prizes.length;
+  const radius = size / 2 - 20;
+  const segmentAngle = (Math.PI * 2) / CONFIG.prizes.length;
 
   ctx.clearRect(0, 0, size, size);
 
   ctx.save();
   ctx.translate(center, center);
+
+  // Outer luxury halo
+  const halo = ctx.createRadialGradient(0, 0, radius * 0.62, 0, 0, radius + 16);
+  halo.addColorStop(0, "rgba(216,178,93,0.00)");
+  halo.addColorStop(0.70, "rgba(216,178,93,0.08)");
+  halo.addColorStop(1, "rgba(255,241,182,0.36)");
+
+  ctx.beginPath();
+  ctx.arc(0, 0, radius + 14, 0, Math.PI * 2);
+  ctx.fillStyle = halo;
+  ctx.fill();
+
   ctx.rotate(rotation);
 
-  for (let i = 0; i < prizes.length; i++) {
+  // Decorative outer ring
+  ctx.beginPath();
+  ctx.arc(0, 0, radius + 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#140C12";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, radius + 6, 0, Math.PI * 2);
+  ctx.strokeStyle = "#FFF1B6";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, radius - 1, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(216,178,93,0.65)";
+  ctx.lineWidth = 8;
+  ctx.stroke();
+
+  for (let i = 0; i < CONFIG.prizes.length; i++) {
     const start = i * segmentAngle;
     const end = start + segmentAngle;
-    const prize = prizes[i];
+    const mid = start + segmentAngle / 2;
+    const prize = CONFIG.prizes[i];
 
     ctx.beginPath();
     ctx.moveTo(0, 0);
-    ctx.arc(0, 0, radius, start, end);
+    ctx.arc(0, 0, radius - 8, start, end);
     ctx.closePath();
-    ctx.fillStyle = colors[i];
+
+    const sectorGradient = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius);
+    sectorGradient.addColorStop(0, i % 2 === 0 ? "rgba(255,241,182,0.22)" : "rgba(255,255,255,0.16)");
+    sectorGradient.addColorStop(0.50, CONFIG.colors[i]);
+    sectorGradient.addColorStop(1, i % 2 === 0 ? "#1A1112" : "#7B5624");
+
+    ctx.fillStyle = sectorGradient;
     ctx.fill();
 
-    const gradient = ctx.createRadialGradient(0, 0, 10, 0, 0, radius);
-    gradient.addColorStop(0, "rgba(255,255,255,0.18)");
-    gradient.addColorStop(1, "rgba(0,0,0,0.08)");
-    ctx.fillStyle = gradient;
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(255,255,255,0.72)";
+    ctx.strokeStyle = "rgba(255,241,182,0.55)";
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    const mid = start + segmentAngle / 2;
-
+    // small golden studs
     ctx.save();
     ctx.rotate(mid);
+
+    ctx.beginPath();
+    ctx.arc(radius - 22, 0, 5, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFF1B6";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(radius - 22, 0, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#8E672A";
+    ctx.fill();
+
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(0,0,0,0.32)";
-    ctx.shadowBlur = 4;
+    ctx.fillStyle = "#FFF7E1";
+    ctx.shadowColor = "rgba(0,0,0,0.65)";
+    ctx.shadowBlur = 6;
 
-    ctx.font = "900 22px system-ui, -apple-system, sans-serif";
-    ctx.fillText(prize.emoji, radius - 74, -4);
+    ctx.font = "900 28px system-ui, -apple-system, sans-serif";
+    ctx.fillText(prize.emoji, radius - 88, -8);
 
-    ctx.font = "900 13px system-ui, -apple-system, sans-serif";
-    ctx.fillText(prize.short, radius - 78, 18);
+    ctx.font = "950 15px system-ui, -apple-system, sans-serif";
+    ctx.fillText(prize.short, radius - 88, 20);
 
-    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
+  // Inner ring
   ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 10;
-  ctx.stroke();
+  ctx.arc(0, 0, 82, 0, Math.PI * 2);
+  ctx.fillStyle = "#120B0E";
+  ctx.fill();
 
-  drawCenterCap(0, 0);
+  ctx.beginPath();
+  ctx.arc(0, 0, 76, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,241,182,0.92)";
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 62, 0, Math.PI * 2);
+  const centerGradient = ctx.createRadialGradient(-22, -25, 8, 0, 0, 62);
+  centerGradient.addColorStop(0, "#FFFFFF");
+  centerGradient.addColorStop(0.34, "#FFF1B6");
+  centerGradient.addColorStop(1, "#D8B25D");
+  ctx.fillStyle = centerGradient;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 42, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(20,12,18,0.10)";
+  ctx.fill();
 
   ctx.restore();
+}
+
+function ensureAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playTick() {
+  if (!soundEnabled) return;
+
+  try {
+    ensureAudio();
+
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.value = 720;
+
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.045, audioContext.currentTime + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.038);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+    osc.stop(audioContext.currentTime + 0.045);
+  } catch {}
+}
+
+function playWinSound() {
+  if (!soundEnabled) return;
+
+  try {
+    ensureAudio();
+
+    [523, 659, 784, 1046].forEach((freq, index) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      const t = audioContext.currentTime + index * 0.09;
+
+      osc.type = "sine";
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.075, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      osc.start(t);
+      osc.stop(t + 0.2);
+    });
+  } catch {}
+}
+
+function maybePlayTick() {
+  const index = getPrizeIndexByRotation(rotation);
+
+  if (index !== lastTickIndex) {
+    lastTickIndex = index;
+    playTick();
+  }
 }
 
 function createConfetti() {
   confetti.innerHTML = "";
 
-  const confettiColors = [
-    "#ffd166",
-    "#ff6aa2",
-    "#7bdff2",
-    "#9b5de5",
-    "#ffffff",
-    "#ff9f1c"
-  ];
+  const colors = ["#D8B25D", "#FFF1B6", "#FFFFFF", "#C9973E", "#8E672A", "#F6D98B"];
 
-  for (let i = 0; i < 42; i++) {
+  for (let i = 0; i < 70; i++) {
     const piece = document.createElement("div");
-    piece.className = "confetti-piece";
 
+    piece.className = "confetti-piece";
     piece.style.left = `${Math.random() * 100}%`;
-    piece.style.top = `${-20 - Math.random() * 20}px`;
-    piece.style.background = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-    piece.style.animationDuration = `${2.5 + Math.random() * 2}s`;
-    piece.style.animationDelay = `${Math.random() * 0.35}s`;
-    piece.style.transform = `translateY(-30px) rotate(${Math.random() * 180}deg)`;
+    piece.style.top = `${-20 - Math.random() * 45}px`;
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = `${2.2 + Math.random() * 2.4}s`;
+    piece.style.animationDelay = `${Math.random() * 0.38}s`;
+    piece.style.transform = `translateY(-35px) rotate(${Math.random() * 180}deg)`;
 
     confetti.appendChild(piece);
   }
 
   setTimeout(() => {
     confetti.innerHTML = "";
-  }, 5000);
+  }, 5400);
 }
 
 function formatPhone(value) {
@@ -220,38 +375,90 @@ function prefillTelegramData() {
   }
 }
 
-function spinWheel() {
+function getExistingLead() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_LEAD_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveLead(name, phone) {
+  const lead = {
+    id: Date.now(),
+    company: CONFIG.company,
+    variant: CONFIG.variant,
+    prize: selectedPrize.label,
+    name,
+    phone,
+    source: getSource(),
+    createdAt: new Date().toISOString()
+  };
+
+  localStorage.setItem(STORAGE_LEAD_KEY, JSON.stringify(lead));
+
+  const leads = JSON.parse(localStorage.getItem(STORAGE_LEADS_KEY) || "[]");
+  leads.unshift(lead);
+  localStorage.setItem(STORAGE_LEADS_KEY, JSON.stringify(leads.slice(0, 50)));
+
+  return lead;
+}
+
+function applyAlreadyUsedState() {
+  const lead = getExistingLead();
+
+  if (!lead) {
+    return;
+  }
+
+  spinBtn.disabled = true;
+  spinBtn.querySelector("span").textContent = "Готово";
+  spinBtn.querySelector("small").textContent = "заявка есть";
+  statusText.textContent = `Вы уже забрали подарок: ${lead.prize}`;
+}
+
+async function spinWheel() {
   if (isSpinning) {
+    return;
+  }
+
+  if (getExistingLead()) {
+    applyAlreadyUsedState();
     return;
   }
 
   isSpinning = true;
   spinBtn.disabled = true;
-  errorText.textContent = "";
-  hidePanels();
+  statusText.textContent = "Колесо крутится...";
+
+  localStorage.setItem(STORAGE_SPIN_KEY, "1");
 
   if (tg?.HapticFeedback) {
     tg.HapticFeedback.impactOccurred("medium");
   }
 
-  const full = Math.PI * 2;
-  const segmentAngle = full / prizes.length;
+  try {
+    ensureAudio();
+  } catch {}
 
-  const randomIndex = Math.floor(Math.random() * prizes.length);
+  const full = Math.PI * 2;
+  const segmentAngle = full / CONFIG.prizes.length;
+  const targetIndex = weightedRandomPrizeIndex();
 
   const currentNormalized = getNormalizedRotation(rotation);
-  const targetAngle = Math.PI * 1.5 - (randomIndex * segmentAngle + segmentAngle / 2);
+  const targetAngle = Math.PI * 1.5 - (targetIndex * segmentAngle + segmentAngle / 2);
 
   let delta = targetAngle - currentNormalized;
+
   if (delta < 0) {
     delta += full;
   }
 
-  const finalRotation = rotation + delta + full * (7 + Math.random() * 1.5);
-  const anticipationRotation = rotation - 0.28;
+  const finalRotation = rotation + delta + full * (7.5 + Math.random() * 1.4);
+  const anticipationRotation = rotation - 0.30;
 
-  const anticipationDuration = 220;
-  const spinDuration = 4100;
+  const anticipationDuration = 240;
+  const spinDuration = 4450;
 
   const anticipationStart = performance.now();
 
@@ -273,14 +480,12 @@ function spinWheel() {
 
       rotation = anticipationRotation + (finalRotation - anticipationRotation) * eased;
 
-      const wobble =
-        progress > 0.87
-          ? Math.sin((progress - 0.87) * 32) * 0.01 * (1 - progress)
-          : 0;
-
-      rotation += wobble;
+      if (progress > 0.86) {
+        rotation += Math.sin((progress - 0.86) * 34) * 0.013 * (1 - progress);
+      }
 
       drawWheel();
+      maybePlayTick();
 
       if (progress < 1) {
         requestAnimationFrame(animateSpin);
@@ -290,19 +495,22 @@ function spinWheel() {
       rotation = finalRotation;
       drawWheel();
 
-      isSpinning = false;
-      spinBtn.disabled = false;
-
       const prizeIndex = getPrizeIndexByRotation(rotation);
-      selectedPrize = prizes[prizeIndex];
+      selectedPrize = CONFIG.prizes[prizeIndex];
 
-      prizeText.textContent = selectedPrize.label;
-      showPanel(resultCard);
-      createConfetti();
+      prizeTitle.textContent = selectedPrize.label;
+      statusText.textContent = "Подарок выпал";
+
+      playWinSound();
 
       if (tg?.HapticFeedback) {
         tg.HapticFeedback.notificationOccurred("success");
       }
+
+      setTimeout(async () => {
+        await bounceSwitch(wheelPanel, prizePanel);
+        isSpinning = false;
+      }, 450);
     }
 
     requestAnimationFrame(animateSpin);
@@ -311,21 +519,62 @@ function spinWheel() {
   requestAnimationFrame(animateAnticipation);
 }
 
+startBtn.addEventListener("click", () => {
+  setScreen(gameScreen);
+  drawWheel();
+  applyAlreadyUsedState();
+
+  if (tg?.HapticFeedback) {
+    tg.HapticFeedback.impactOccurred("light");
+  }
+});
+
+resetDemoBtn.addEventListener("click", () => {
+  localStorage.removeItem(STORAGE_LEAD_KEY);
+  localStorage.removeItem(STORAGE_SPIN_KEY);
+  localStorage.removeItem(STORAGE_LEADS_KEY);
+
+  selectedPrize = null;
+  isSpinning = false;
+
+  wheelPanel.classList.remove("hidden", "exit-up");
+  prizePanel.classList.add("hidden");
+  formPanel.classList.add("hidden");
+  successPanel.classList.add("hidden");
+
+  spinBtn.disabled = false;
+  spinBtn.querySelector("span").textContent = "Крутить";
+  spinBtn.querySelector("small").textContent = "1 попытка";
+  statusText.textContent = "Демо сброшено. Можно крутить снова.";
+
+  setScreen(gameScreen);
+  drawWheel();
+});
+
+soundBtn.addEventListener("click", () => {
+  soundEnabled = !soundEnabled;
+  soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
+
+  if (soundEnabled) {
+    playTick();
+  }
+});
+
 spinBtn.addEventListener("click", spinWheel);
 
-claimBtn.addEventListener("click", () => {
-  showPanel(formCard);
+claimBtn.addEventListener("click", async () => {
+  await bounceSwitch(prizePanel, formPanel);
 
   setTimeout(() => {
     nameInput.focus();
-  }, 250);
+  }, 100);
 });
 
 phoneInput.addEventListener("input", () => {
   phoneInput.value = formatPhone(phoneInput.value);
 });
 
-sendBtn.addEventListener("click", () => {
+sendBtn.addEventListener("click", async () => {
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
 
@@ -351,17 +600,24 @@ sendBtn.addEventListener("click", () => {
   sendBtn.disabled = true;
   sendBtn.textContent = "Отправляем...";
 
-  const payload = {
-    prize: selectedPrize.label,
-    name,
-    phone
-  };
+  const lead = saveLead(name, phone);
 
-  if (tg) {
-    tg.sendData(JSON.stringify(payload));
-  }
+  // Для будущего подключения к Telegram-боту.
+  // Когда будем встраивать в бота, можно будет раскомментировать:
+  // if (tg) {
+  //   tg.sendData(JSON.stringify({
+  //     prize: lead.prize,
+  //     name: lead.name,
+  //     phone: lead.phone,
+  //     source: lead.source,
+  //     createdAt: lead.createdAt
+  //   }));
+  // }
 
-  showPanel(successCard);
+  await bounceSwitch(formPanel, successPanel);
+
+  createConfetti();
+  playWinSound();
 
   if (tg?.HapticFeedback) {
     tg.HapticFeedback.notificationOccurred("success");
@@ -371,7 +627,7 @@ sendBtn.addEventListener("click", () => {
     if (tg) {
       tg.close();
     }
-  }, 1800);
+  }, 2100);
 });
 
 prefillTelegramData();
