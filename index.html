@@ -10,65 +10,97 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <div class="app">
-    <div class="hero">
-      <div class="badge">🎁 Подарок для каждого клиента</div>
-      <h1>Крутите колесо</h1>
-      <p>Выиграйте приятный бонус для ремонта уже сегодня</p>
-    </div>
+  <div class="bg">
+    <div class="bg-grid"></div>
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
 
-    <div class="wheel-card">
-      <div class="shine"></div>
-      <div class="pointer"></div>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-badge">
+        <span>🎁</span>
+        <b>Подарок для каждого клиента</b>
+      </div>
 
-      <div class="wheel-wrap">
-        <canvas id="wheel" width="360" height="360"></canvas>
+      <h1>Колесо подарков</h1>
+      <p>Испытайте удачу и получите приятный бонус для ремонта</p>
+    </header>
+
+    <section class="wheel-card glass">
+      <div class="card-top">
+        <div class="pill">Каждый играет — каждый выигрывает</div>
+      </div>
+
+      <div class="wheel-stage">
+        <div class="pointer"></div>
+        <div class="wheel-shadow"></div>
+
+        <canvas id="wheel" width="380" height="380"></canvas>
 
         <button id="spinBtn" class="spin-btn">
           <span>Крутить</span>
+          <small>1 попытка</small>
         </button>
       </div>
 
-      <div class="hint">Нажмите на кнопку в центре колеса</div>
-    </div>
+      <div class="under-note">
+        Нажмите кнопку в центре, чтобы прокрутить колесо
+      </div>
+    </section>
 
-    <div id="resultPanel" class="result-panel hidden">
-      <div class="gift-icon">🎁</div>
-      <div class="small-title">Ваш подарок</div>
-      <div id="prizeText" class="prize-text"></div>
+    <section id="resultCard" class="panel glass hidden">
+      <div class="panel-icon">🎉</div>
+      <div class="panel-kicker">Ваш подарок</div>
+      <div id="prizeText" class="panel-title"></div>
+
+      <p class="panel-text">
+        Отлично! Оставьте контакты, чтобы мы закрепили подарок за вами.
+      </p>
 
       <button id="claimBtn" class="primary-btn">
         Получить подарок
       </button>
-    </div>
+    </section>
 
-    <div id="formPanel" class="form-panel hidden">
-      <h2>Куда связаться?</h2>
-      <p>Оставьте имя и телефон — мы скоро напишем или позвоним.</p>
+    <section id="formCard" class="panel glass hidden">
+      <div class="panel-kicker">Контактные данные</div>
+      <h2>Куда с вами связаться?</h2>
 
-      <label>
-        Ваше имя
+      <p class="panel-text">
+        Оставьте имя и номер телефона — мы скоро с вами свяжемся.
+      </p>
+
+      <div class="input-group">
+        <label for="nameInput">Ваше имя</label>
         <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
-      </label>
+      </div>
 
-      <label>
-        Телефон
+      <div class="input-group">
+        <label for="phoneInput">Телефон</label>
         <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
-      </label>
+      </div>
+
+      <div id="errorText" class="error-text"></div>
 
       <button id="sendBtn" class="primary-btn">
         Подтвердить
       </button>
+    </section>
 
-      <div id="errorText" class="error-text"></div>
-    </div>
-
-    <div id="successPanel" class="success-panel hidden">
-      <div class="success-icon">✨</div>
+    <section id="successCard" class="panel glass success-card hidden">
+      <div class="panel-icon">✨</div>
+      <div class="panel-kicker">Готово</div>
       <h2>Спасибо!</h2>
-      <p>Заявка принята. С вами скоро свяжутся.</p>
-    </div>
-  </div>
+
+      <p class="panel-text">
+        Ваша заявка принята. С вами скоро свяжутся.
+      </p>
+    </section>
+  </main>
+
+  <div id="confetti"></div>
 
   <script src="app.js"></script>
 </body>
