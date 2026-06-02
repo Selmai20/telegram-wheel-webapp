@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>ELIT REMONT — Колесо подарков</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="site-bg">
+    <div class="pattern-layer"></div>
+    <div class="premium-vignette"></div>
+    <div class="light-orb orb-a"></div>
+    <div class="light-orb orb-b"></div>
+    <div class="light-orb orb-c"></div>
+    <div class="grain-layer"></div>
+  </div>
+
+  <main class="app">
+    <section id="loaderScreen" class="loader-screen">
+      <div class="loader-card">
+        <div class="logo-mark loader-logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.75 14.9 8.6l6.45.94-4.67 4.55 1.1 6.42L12 17.47 6.22 20.5l1.1-6.42-4.67-4.55 6.45-.94L12 2.75Z"/>
+          </svg>
+        </div>
+
+        <div class="brand-name">ELIT REMONT</div>
+        <div class="loader-title">Подготавливаем колесо подарков</div>
+
+        <div class="loader-bar">
+          <div id="loaderProgress" class="loader-progress"></div>
+        </div>
+
+        <div id="loaderText" class="loader-text">Загружаем подарки...</div>
+      </div>
+    </section>
+
+    <section id="gameScreen" class="game-screen hidden">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="logo-mark small">
+            <svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2.75 14.9 8.6l6.45.94-4.67 4.55 1.1 6.42L12 17.47 6.22 20.5l1.1-6.42-4.67-4.55 6.45-.94L12 2.75Z"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="brand-name">ELIT REMONT</div>
+            <div class="brand-subtitle">Премиальная акция для клиентов</div>
+          </div>
+        </div>
+
+        <button id="soundBtn" class="round-btn" aria-label="Звук">
+          <svg id="soundOnIcon" viewBox="0 0 24 24">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"/>
+            <path d="M16 9.5a4 4 0 0 1 0 5"/>
+            <path d="M18.5 7a7 7 0 0 1 0 10"/>
+          </svg>
+          <svg id="soundOffIcon" class="hidden" viewBox="0 0 24 24">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"/>
+            <path d="M19 9l-4 4"/>
+            <path d="M15 9l4 4"/>
+          </svg>
+        </button>
+      </header>
+
+      <section id="wheelPanel" class="stage-panel wheel-panel premium-card">
+        <div class="panel-ornament top">
+          <span></span>
+          <svg viewBox="0 0 24 24"><path d="M12 3c2.2 3.8 4.9 6.5 9 9-4.1 2.5-6.8 5.2-9 9-2.2-3.8-4.9-6.5-9-9 4.1-2.5 6.8-5.2 9-9Z"/></svg>
+          <span></span>
+        </div>
+
+        <div class="campaign-label">Каждый играет — каждый выигрывает</div>
+        <h1>Колесо подарков</h1>
+        <p class="panel-copy">Нажмите кнопку в центре и получите бонус для ремонта.</p>
+
+        <div class="wheel-stage">
+          <div class="wheel-aura"></div>
+
+          <div class="pointer-wrap">
+            <div class="pointer-cap"></div>
+            <div class="pointer"></div>
+          </div>
+
+          <canvas id="wheel" width="620" height="620"></canvas>
+
+          <button id="spinBtn" class="spin-btn">
+            <span>Крутить</span>
+            <small>1 попытка</small>
+          </button>
+        </div>
+
+        <div id="statusText" class="status-text">Колесо готово</div>
+      </section>
+
+      <section id="prizePanel" class="stage-panel prize-panel premium-card hidden">
+        <div class="panel-ornament top">
+          <span></span>
+          <svg viewBox="0 0 24 24"><path d="M12 3c2.2 3.8 4.9 6.5 9 9-4.1 2.5-6.8 5.2-9 9-2.2-3.8-4.9-6.5-9-9 4.1-2.5 6.8-5.2 9-9Z"/></svg>
+          <span></span>
+        </div>
+
+        <div class="large-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/>
+            <path d="M2 7h20v5H2z"/>
+            <path d="M12 22V7"/>
+            <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z"/>
+            <path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/>
+          </svg>
+        </div>
+
+        <div class="section-kicker">Ваш подарок</div>
+        <h2 id="prizeTitle">Подарок</h2>
+        <p>Подарок закреплён за вами предварительно. Оставьте контакты, чтобы менеджер подтвердил получение.</p>
+
+        <button id="claimBtn" class="primary-btn">Получить подарок</button>
+      </section>
+
+      <section id="formPanel" class="stage-panel form-panel premium-card hidden">
+        <div class="panel-ornament top">
+          <span></span>
+          <svg viewBox="0 0 24 24"><path d="M12 3c2.2 3.8 4.9 6.5 9 9-4.1 2.5-6.8 5.2-9 9-2.2-3.8-4.9-6.5-9-9 4.1-2.5 6.8-5.2 9-9Z"/></svg>
+          <span></span>
+        </div>
+
+        <div class="section-kicker">Контактные данные</div>
+        <h2>Куда с вами связаться?</h2>
+        <p>Введите имя и телефон. В финальной версии заявка уйдёт админу в Telegram.</p>
+
+        <label class="input-group">
+          <span>Ваше имя</span>
+          <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
+        </label>
+
+        <label class="input-group">
+          <span>Телефон</span>
+          <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
+        </label>
+
+        <div id="errorText" class="error-text"></div>
+
+        <button id="sendBtn" class="primary-btn">Подтвердить</button>
+      </section>
+
+      <section id="successPanel" class="stage-panel success-panel premium-card hidden">
+        <div class="large-icon success">
+          <svg viewBox="0 0 24 24">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </div>
+
+        <div class="section-kicker">Готово</div>
+        <h2>Спасибо!</h2>
+        <p>Заявка принята. С вами скоро свяжутся.</p>
+      </section>
+
+      <button id="resetDemoBtn" class="demo-reset">Сбросить демо</button>
+    </section>
+  </main>
+
+  <div id="confetti"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
