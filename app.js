@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-app-mode-icons",
+  variant: "premium-gold-app-mode-v7",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -63,6 +63,14 @@ const CONFIG = {
     ["#6E481D", "#C9963D", "#2B190F"],
     ["#C79640", "#FFE5A0", "#80551F"]
   ]
+};
+
+const ADMIN_FALLBACK = {
+  // Заполни только если хочешь отправлять админу напрямую даже если Telegram WebApp sendData не сработал.
+  // ВАЖНО: токен бота будет виден в коде сайта, поэтому для финальной версии лучше использовать backend.
+  enabled: false,
+  botToken: "",
+  adminId: ""
 };
 
 const STORAGE_LEAD_KEY = `wheel_${CONFIG.variant}_lead`;
@@ -744,8 +752,22 @@ function getPhoneUtils() {
   return window.libphonenumber || window.libphonenumberJs || window.libphonenumberJS || null;
 }
 
+let lastPhoneValue = "";
+
 function digitsOnly(value) {
-  return String(value || "").replace(/\D/g, "").slice(0, 16);
+  return String(value || "").replace(/\D/g, "").slice(0, 18);
+}
+
+function formatByLibrary(rawPlusNumber) {
+  const phoneUtils = getPhoneUtils();
+
+  if (phoneUtils?.AsYouType) {
+    try {
+      return new phoneUtils.AsYouType().input(rawPlusNumber);
+    } catch {}
+  }
+
+  return fallbackPhoneMask(rawPlusNumber);
 }
 
 function fallbackPhoneMask(value) {
@@ -769,20 +791,51 @@ function fallbackPhoneMask(value) {
   return "+" + groups.filter(Boolean).join(" ");
 }
 
-function formatPhone(value) {
-  const rawDigits = digitsOnly(value);
-  if (!rawDigits) return "+";
-
-  const raw = "+" + rawDigits;
+function trimPhoneToCountryLimit(rawDigits) {
   const phoneUtils = getPhoneUtils();
+  let digits = String(rawDigits || "").replace(/\D/g, "");
 
-  if (phoneUtils?.AsYouType) {
-    try {
-      return new phoneUtils.AsYouType().input(raw);
-    } catch {}
+  if (digits.length > 15) {
+    digits = digits.slice(0, 15);
   }
 
-  return fallbackPhoneMask(raw);
+  if (!phoneUtils?.validatePhoneNumberLength) {
+    return digits;
+  }
+
+  while (digits.length > 1) {
+    const testNumber = "+" + digits;
+    let lengthResult = null;
+
+    try {
+      lengthResult = phoneUtils.validatePhoneNumberLength(testNumber);
+    } catch {
+      break;
+    }
+
+    if (lengthResult !== "TOO_LONG") {
+      break;
+    }
+
+    digits = digits.slice(0, -1);
+  }
+
+  return digits;
+}
+
+function formatPhone(value) {
+  const rawDigits = digitsOnly(value);
+
+  if (!rawDigits) {
+    lastPhoneValue = "+";
+    return "+";
+  }
+
+  const trimmedDigits = trimPhoneToCountryLimit(rawDigits);
+  const formatted = formatByLibrary("+" + trimmedDigits);
+
+  lastPhoneValue = formatted || ("+" + trimmedDigits);
+  return lastPhoneValue;
 }
 
 function validatePhone(phone) {
@@ -812,14 +865,14 @@ function validatePhone(phone) {
     if (!parsed.isPossible()) {
       return {
         valid: false,
-        message: `Неверная длина номера для страны ${parsed.country}`
+        message: `Номер для страны ${parsed.country} ещё не полный`
       };
     }
 
     if (!parsed.isValid()) {
       return {
         valid: false,
-        message: `Номер не похож на настоящий номер страны ${parsed.country}`
+        message: `Проверьте номер страны ${parsed.country}`
       };
     }
 
@@ -838,7 +891,7 @@ function validatePhone(phone) {
   }
 
   if (digits.length > 15) {
-    return { valid: false, message: "Слишком длинный номер. Максимум 15 цифр" };
+    return { valid: false, message: "Слишком длинный номер" };
   }
 
   return { valid: true, normalized: fallbackPhoneMask(clean) };
@@ -881,13 +934,35 @@ function saveLead(name, phone) {
   return lead;
 }
 
+async function notifyAdminFallback(lead) {
+  if (!ADMIN_FALLBACK.enabled || !ADMIN_FALLBACK.botToken || !ADMIN_FALLBACK.adminId) {
+    return;
+  }
+
+  const text =
+    "🎁 Новый подарок забрали!%0A%0A" +
+    `🏆 Приз: ${encodeURIComponent(lead.prize)}%0A` +
+    `👤 Имя: ${encodeURIComponent(lead.name)}%0A` +
+    `📞 Телефон: ${encodeURIComponent(lead.phone)}%0A` +
+    `📌 Источник: ${encodeURIComponent(lead.source)}%0A` +
+    `🕒 Дата: ${encodeURIComponent(lead.createdAt)}`;
+
+  const url =
+    `https://api.telegram.org/bot${ADMIN_FALLBACK.botToken}/sendMessage` +
+    `?chat_id=${ADMIN_FALLBACK.adminId}&text=${text}`;
+
+  try {
+    await fetch(url);
+  } catch {}
+}
+
 function applyAlreadyUsedState() {
   const lead = getExistingLead();
   if (!lead) return;
 
   spinBtn.disabled = true;
   spinBtn.querySelector("span").textContent = "Готово";
-  spinBtn.querySelector("small").textContent = "заявка есть";
+  spinBtn.querySelector("small").textContent = "";
   statusText.textContent = `Вы уже забрали подарок: ${lead.prize}`;
 }
 
@@ -1023,6 +1098,8 @@ async function handleMainAction() {
       }));
     }
 
+    await notifyAdminFallback(lead);
+
     await goToView(successView, "success", "готово", null);
     createConfetti();
     playWinSound();
@@ -1053,19 +1130,13 @@ phoneInput.addEventListener("focus", () => {
   }
 });
 
-phoneInput.addEventListener("focus", () => {
-  if (!phoneInput.value.trim()) {
-    phoneInput.value = "+";
-  }
-});
-
 phoneInput.addEventListener("input", () => {
-  phoneInput.value = formatPhone(phoneInput.value);
-  if (phoneInput.value.trim().length > 1) {
-    const check = validatePhone(phoneInput.value);
-    if (check.valid) {
-      errorText.textContent = "";
-    }
+  const formatted = formatPhone(phoneInput.value);
+  phoneInput.value = formatted;
+
+  const check = validatePhone(phoneInput.value);
+  if (check.valid) {
+    errorText.textContent = "";
   }
 });
 
@@ -1091,7 +1162,7 @@ resetDemoBtn.addEventListener("click", () => {
   mainActionBtn.classList.add("hidden");
   spinBtn.disabled = false;
   spinBtn.querySelector("span").textContent = "Крутить";
-  spinBtn.querySelector("small").textContent = "1 попытка";
+  spinBtn.querySelector("small").textContent = "";
   sceneLabel.textContent = "подарок для клиента";
   statusText.textContent = "Демо сброшено. Можно крутить снова.";
   errorText.textContent = "";

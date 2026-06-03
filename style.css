@@ -914,3 +914,86 @@ canvas {
     min-height: 46px;
   }
 }
+
+
+/* v7 centering + no horizontal drift */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  left: 0;
+  right: 0;
+}
+
+.main-scene {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.scene-host {
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-view {
+  width: 100%;
+  max-width: 100%;
+  left: 0;
+  right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.wheel-view,
+.contact-view,
+.prize-view,
+.success-view {
+  transform-origin: center center;
+}
+
+.spin-button small {
+  display: none !important;
+}
+
+.possible-prizes-block {
+  width: 100%;
+  max-width: min(430px, calc(100vw - 24px));
+  overflow: hidden;
+}
+
+.possible-prizes {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.field,
+.error-text,
+.phone-mask-preview {
+  max-width: min(390px, calc(100vw - 34px));
+}
+
+@media (max-width: 430px) {
+  .app-shell {
+    max-width: 100%;
+  }
+
+  .main-scene {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
