@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-final-v16",
+  variant: "premium-gold-final-v17",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -68,6 +68,15 @@ const CONFIG = {
 const ADMIN_FALLBACK = {
   // Заполни только если хочешь отправлять админу напрямую даже если Telegram WebApp sendData не сработал.
   // ВАЖНО: токен бота будет виден в коде сайта, поэтому для финальной версии лучше использовать backend.
+  enabled: false,
+  botToken: "",
+  adminId: ""
+};
+
+const ADMIN_DIRECT_SEND = {
+  // РЕЗЕРВНАЯ отправка админу напрямую.
+  // Для теста можно включить true и вставить BOT_TOKEN + ADMIN_ID.
+  // Минус: BOT_TOKEN будет виден в коде сайта. Для продакшена лучше backend.
   enabled: false,
   botToken: "",
   adminId: ""
@@ -1021,6 +1030,62 @@ function getExistingLead() {
   return null;
 }
 
+async function sendLeadDirectToAdmin(lead) {
+  if (!ADMIN_DIRECT_SEND.enabled || !ADMIN_DIRECT_SEND.botToken || !ADMIN_DIRECT_SEND.adminId) {
+    return false;
+  }
+
+  const text = [
+    "🎁 Новый подарок забрали!",
+    "",
+    `🏆 Приз: ${lead.prize}`,
+    `👤 Имя: ${lead.name}`,
+    `📞 Телефон: ${lead.phone}`,
+    "",
+    "⚠️ Отправлено резервным способом из WebApp"
+  ].join("\n");
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${ADMIN_DIRECT_SEND.botToken}/sendMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        chat_id: ADMIN_DIRECT_SEND.adminId,
+        text
+      })
+    });
+
+    return response.ok;
+  } catch (error) {
+    console.error("Direct admin send failed:", error);
+    return false;
+  }
+}
+
+async function sendLeadToBotAndAdmin(lead) {
+  let sentToTelegramWebApp = false;
+
+  if (tg) {
+    try {
+      tg.sendData(JSON.stringify({
+        prize: lead.prize,
+        name: lead.name,
+        phone: lead.phone
+      }));
+      sentToTelegramWebApp = true;
+    } catch (error) {
+      console.error("tg.sendData failed:", error);
+    }
+  }
+
+  // Резервный способ можно включить на время теста через ADMIN_DIRECT_SEND.enabled = true.
+  await sendLeadDirectToAdmin(lead);
+
+  return sentToTelegramWebApp;
+}
+
 function saveLead(name, phone) {
   const lead = {
     id: Date.now(),
@@ -1201,13 +1266,7 @@ async function handleMainAction() {
 
     const lead = saveLead(name, phoneCheck.normalized || phone);
 
-    if (tg) {
-      tg.sendData(JSON.stringify({
-        prize: lead.prize,
-        name: lead.name,
-        phone: lead.phone
-      }));
-    }
+    await sendLeadToBotAndAdmin(lead);
 
     await goToView(successView, "success", "готово", null);
     createConfetti();
