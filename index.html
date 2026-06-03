@@ -134,9 +134,9 @@
 
           <label class="field">
             <span>Телефон</span>
-            <input id="phoneInput" type="tel" placeholder="+371 12 345 678" autocomplete="tel" inputmode="tel" />
-            <div class="field-hint">Введите номер в международном формате: +код страны и до 15 цифр всего.</div>
-            <div class="phone-mask-preview">Маска: +XXX XX XXX XXXX</div>
+            <input id="phoneInput" type="tel" placeholder="+371 6123 4567" autocomplete="tel" inputmode="tel" />
+            <div class="field-hint">Проверяем код страны и длину номера для конкретной страны.</div>
+            <div class="phone-mask-preview">Пример: +371 6123 4567</div>
           </label>
 
           <div id="errorText" class="error-text"></div>
@@ -164,6 +164,7 @@
 
   <div id="confetti"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1/bundle/libphonenumber-js.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -719,20 +719,37 @@ function renderPossiblePrizes() {
   if (!possiblePrizes) return;
   possiblePrizes.innerHTML = "";
 
+  const iconMap = {
+    tile: "▦",
+    mirror: "◯",
+    door: "▯",
+    doubleDoor: "▯",
+    heater: "◍",
+    ceiling: "✦",
+    measure: "⌁"
+  };
+
   CONFIG.prizes.forEach(prize => {
     const chip = document.createElement("div");
     chip.className = "prize-chip";
-    chip.textContent = prize.label;
+    chip.innerHTML = `
+      <span class="prize-chip-icon">${iconMap[prize.iconType] || "◆"}</span>
+      <span class="prize-chip-text">${prize.label}</span>
+    `;
     possiblePrizes.appendChild(chip);
   });
 }
 
-function digitsOnly(value) {
-  return (value || "").replace(/\D/g, "").slice(0, 15);
+function getPhoneUtils() {
+  return window.libphonenumber || window.libphonenumberJs || window.libphonenumberJS || null;
 }
 
-function applyPhoneMask(value) {
-  const digits = digitsOnly(value);
+function digitsOnly(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 16);
+}
+
+function fallbackPhoneMask(value) {
+  const digits = digitsOnly(value).slice(0, 15);
   if (!digits) return "+";
 
   const groups = [];
@@ -748,17 +765,24 @@ function applyPhoneMask(value) {
     index += size;
   }
 
-  if (index < digits.length) {
-    groups.push(digits.slice(index));
-  }
-
+  if (index < digits.length) groups.push(digits.slice(index));
   return "+" + groups.filter(Boolean).join(" ");
 }
 
 function formatPhone(value) {
-  const str = String(value || "");
-  if (!str.trim()) return "+";
-  return applyPhoneMask(str);
+  const rawDigits = digitsOnly(value);
+  if (!rawDigits) return "+";
+
+  const raw = "+" + rawDigits;
+  const phoneUtils = getPhoneUtils();
+
+  if (phoneUtils?.AsYouType) {
+    try {
+      return new phoneUtils.AsYouType().input(raw);
+    } catch {}
+  }
+
+  return fallbackPhoneMask(raw);
 }
 
 function validatePhone(phone) {
@@ -772,21 +796,52 @@ function validatePhone(phone) {
     return { valid: false, message: "Номер должен начинаться с + и кода страны" };
   }
 
-  if (!/^\+[\d\s]+$/.test(clean)) {
-    return { valid: false, message: "Используйте только цифры после знака +" };
+  const phoneUtils = getPhoneUtils();
+
+  if (phoneUtils?.parsePhoneNumberFromString) {
+    const parsed = phoneUtils.parsePhoneNumberFromString(clean);
+
+    if (!parsed) {
+      return { valid: false, message: "Не удалось определить код страны" };
+    }
+
+    if (!parsed.country) {
+      return { valid: false, message: "Код страны не распознан" };
+    }
+
+    if (!parsed.isPossible()) {
+      return {
+        valid: false,
+        message: `Неверная длина номера для страны ${parsed.country}`
+      };
+    }
+
+    if (!parsed.isValid()) {
+      return {
+        valid: false,
+        message: `Номер не похож на настоящий номер страны ${parsed.country}`
+      };
+    }
+
+    return {
+      valid: true,
+      normalized: parsed.formatInternational(),
+      country: parsed.country,
+      countryCode: parsed.countryCallingCode
+    };
   }
 
   const digits = digitsOnly(clean);
 
   if (digits.length < 8) {
-    return { valid: false, message: "Слишком короткий номер. Проверьте код страны и цифры" };
+    return { valid: false, message: "Слишком короткий номер" };
   }
 
   if (digits.length > 15) {
     return { valid: false, message: "Слишком длинный номер. Максимум 15 цифр" };
   }
 
-  return { valid: true, normalized: applyPhoneMask(clean) };
+  return { valid: true, normalized: fallbackPhoneMask(clean) };
 }
 
 function prefillTelegramData() {
@@ -958,10 +1013,15 @@ async function handleMainAction() {
 
     const lead = saveLead(name, phoneCheck.normalized || phone);
 
-    // Для финальной Telegram-версии можно включить:
-    // if (tg) {
-    //   tg.sendData(JSON.stringify(lead));
-    // }
+    if (tg) {
+      tg.sendData(JSON.stringify({
+        prize: lead.prize,
+        name: lead.name,
+        phone: lead.phone,
+        source: lead.source,
+        createdAt: lead.createdAt
+      }));
+    }
 
     await goToView(successView, "success", "готово", null);
     createConfetti();
@@ -993,6 +1053,12 @@ phoneInput.addEventListener("focus", () => {
   }
 });
 
+phoneInput.addEventListener("focus", () => {
+  if (!phoneInput.value.trim()) {
+    phoneInput.value = "+";
+  }
+});
+
 phoneInput.addEventListener("input", () => {
   phoneInput.value = formatPhone(phoneInput.value);
   if (phoneInput.value.trim().length > 1) {
@@ -1005,7 +1071,7 @@ phoneInput.addEventListener("input", () => {
 
 phoneInput.addEventListener("blur", () => {
   if (phoneInput.value.trim() && phoneInput.value.trim() !== "+") {
-    phoneInput.value = applyPhoneMask(phoneInput.value);
+    phoneInput.value = formatPhone(phoneInput.value);
   }
 });
 

@@ -784,3 +784,133 @@ canvas {
   font-size: 11px;
   font-weight: 800;
 }
+
+
+/* v6 final overrides */
+.scene-host {
+  overflow: hidden;
+}
+
+.app-view {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.app-view::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-view {
+  padding-top: 0;
+  padding-bottom: 22px;
+}
+
+.wheel-zone {
+  width: min(100%, 370px) !important;
+  margin-top: 6px;
+}
+
+.possible-prizes-block {
+  width: 100%;
+  max-width: 430px;
+  margin: 12px auto 0;
+  padding: 12px 0 4px;
+}
+
+.possible-prizes-title {
+  margin-bottom: 10px;
+  color: var(--gold-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 950;
+  text-align: center;
+}
+
+.possible-prizes {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 4px 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.possible-prizes::-webkit-scrollbar {
+  display: none;
+}
+
+.prize-chip {
+  flex: 0 0 164px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border-radius: 16px;
+  text-align: left;
+  color: var(--text);
+  background:
+    linear-gradient(180deg, rgba(255,240,184,0.105), rgba(255,240,184,0.052));
+  border: 1px solid rgba(255,240,184,0.18);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  font-size: 12px;
+  line-height: 1.18;
+  font-weight: 820;
+  scroll-snap-align: start;
+}
+
+.prize-chip-icon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #180C07;
+  background: linear-gradient(135deg, #ffffff, var(--gold-light) 38%, var(--gold));
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.prize-chip-text {
+  display: block;
+}
+
+.field-hint {
+  margin-top: 8px;
+  color: rgba(255,246,221,0.56);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.phone-mask-preview {
+  width: 100%;
+  max-width: 390px;
+  margin: 6px auto 0;
+  color: rgba(255,246,221,0.42);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-height: 720px) {
+  .wheel-zone {
+    width: min(100%, 330px) !important;
+  }
+
+  .possible-prizes-block {
+    margin-top: 6px;
+  }
+
+  .prize-chip {
+    flex-basis: 150px;
+    min-height: 46px;
+  }
+}
