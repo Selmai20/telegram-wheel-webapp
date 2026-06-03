@@ -15,44 +15,44 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "КрутаниРемонт",
-  variant: "krutaniremont-v18",
+  variant: "krutaniremont-v19-fair",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
       label: "5 м² плитки",
       lines: ["5 м²", "плитки"],
       iconType: "tile",
-      weight: 15
+      weight: 1
     },
     {
       label: "Зеркало с подсветкой",
       lines: ["зеркало", "свет"],
       iconType: "mirror",
-      weight: 16
+      weight: 1
     },
     {
       label: "Монтаж дверей",
       lines: ["монтаж", "дверей"],
       iconType: "door",
-      weight: 17
+      weight: 1
     },
     {
       label: "Водонагреватель",
       lines: ["водо", "нагреватель"],
       iconType: "heater",
-      weight: 16
+      weight: 1
     },
     {
       label: "Смеситель",
       lines: ["смеситель"],
       iconType: "faucet",
-      weight: 17
+      weight: 1
     },
     {
       label: "Монтаж натяжных потолков в подарок",
       lines: ["натяжные", "потолки"],
       iconType: "ceiling",
-      weight: 19
+      weight: 1
     }
   ],
   sectorColors: [
@@ -285,9 +285,19 @@ function getPrizeIndexByRotation(finalRotation) {
   return Math.floor(pointerAngle / segmentAngle);
 }
 
+function getRandomFloat() {
+  if (window.crypto?.getRandomValues) {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return array[0] / 4294967296;
+  }
+
+  return Math.random();
+}
+
 function weightedRandomPrizeIndex() {
   const total = CONFIG.prizes.reduce((sum, prize) => sum + prize.weight, 0);
-  let roll = Math.random() * total;
+  let roll = getRandomFloat() * total;
 
   for (let i = 0; i < CONFIG.prizes.length; i++) {
     roll -= CONFIG.prizes[i].weight;
@@ -1166,7 +1176,10 @@ async function spinWheel() {
   let delta = targetAngle - currentNormalized;
   if (delta < 0) delta += full;
 
-  const finalRotation = rotation + delta + full * (7.8 + Math.random() * 1.25);
+  // ВАЖНО: добавляем только ЦЕЛОЕ число оборотов.
+  // Если добавить 7.8 + random оборотов, колесо визуально остановится не на рассчитанном секторе.
+  const extraSpins = 7 + Math.floor(getRandomFloat() * 3);
+  const finalRotation = rotation + delta + full * extraSpins;
   const anticipationRotation = rotation - 0.24;
   const anticipationDuration = 220;
   const spinDuration = 4550;
@@ -1204,7 +1217,7 @@ async function spinWheel() {
       rotation = finalRotation;
       drawWheel();
 
-      const prizeIndex = getPrizeIndexByRotation(rotation);
+      const prizeIndex = targetIndex;
       selectedPrize = CONFIG.prizes[prizeIndex];
       prizeTitle.textContent = selectedPrize.label;
       statusText.textContent = "Подарок выпал";
