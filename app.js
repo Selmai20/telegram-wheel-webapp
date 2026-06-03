@@ -15,12 +15,12 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-final-v14",
+  variant: "premium-gold-final-v16",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
-      label: "От 3 до 5 м² плитки",
-      lines: ["3–5 м²", "плитки"],
+      label: "5 м² плитки",
+      lines: ["5 м²", "плитки"],
       iconType: "tile",
       weight: 15
     },
@@ -43,9 +43,9 @@ const CONFIG = {
       weight: 16
     },
     {
-      label: "Бесплатный замер",
-      lines: ["бесплатный", "замер"],
-      iconType: "measure",
+      label: "Смеситель",
+      lines: ["смеситель"],
+      iconType: "faucet",
       weight: 17
     },
     {
@@ -469,6 +469,48 @@ function drawCeilingIcon(ctx, x, y, scale) {
   drawSpark(ctx, x, y + 11 * scale, 4.2 * scale, "#FFF0B8");
 }
 
+function drawFaucetIcon(ctx, x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+
+  ctx.strokeStyle = "#7A541F";
+  ctx.fillStyle = "#FBF8EE";
+  ctx.lineWidth = 2.4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  fillRoundRect(ctx, -14, 11, 28, 8, 4);
+  strokeRoundRect(ctx, -14, 11, 28, 8, 4);
+
+  ctx.beginPath();
+  ctx.moveTo(-3, 11);
+  ctx.lineTo(-3, -8);
+  ctx.lineTo(17, -8);
+  ctx.quadraticCurveTo(24, -8, 24, -1);
+  ctx.lineTo(24, 3);
+  ctx.moveTo(18, 2);
+  ctx.lineTo(28, 2);
+  ctx.stroke();
+
+  fillRoundRect(ctx, -11, -18, 22, 7, 3);
+  strokeRoundRect(ctx, -11, -18, 22, 7, 3);
+
+  ctx.beginPath();
+  ctx.moveTo(0, -11);
+  ctx.lineTo(0, -8);
+  ctx.stroke();
+
+  ctx.fillStyle = "#D2A755";
+  ctx.beginPath();
+  ctx.moveTo(27, 8);
+  ctx.quadraticCurveTo(22, 14, 27, 18);
+  ctx.quadraticCurveTo(32, 14, 27, 8);
+  ctx.fill();
+
+  ctx.restore();
+}
+
 function drawMeasureIcon(ctx, x, y, scale) {
   const w = 34 * scale;
   const h = 20 * scale;
@@ -517,6 +559,9 @@ function drawPrizeIcon(ctx, iconType, x, y, scale = 1) {
       break;
     case "measure":
       drawMeasureIcon(ctx, x, y, scale);
+      break;
+    case "faucet":
+      drawFaucetIcon(ctx, x, y, scale);
       break;
   }
 }
@@ -769,7 +814,8 @@ function renderPossiblePrizes() {
     doubleDoor: "▯",
     heater: "◍",
     ceiling: "✦",
-    measure: "⌁"
+    measure: "⌁",
+    faucet: "◌"
   };
 
   possiblePrizes.innerHTML = CONFIG.prizes.map(prize => `
@@ -1115,9 +1161,16 @@ async function spinWheel() {
   requestAnimationFrame(animateAnticipation);
 }
 
+function prefillBelarusPhone() {
+  if (!phoneInput.value.trim()) {
+    phoneInput.value = "+375 ";
+  }
+}
+
 async function handleMainAction() {
   if (currentState === "prize") {
     await goToView(contactView, "contact", "контактные данные", "Подтвердить");
+    prefillBelarusPhone();
     setTimeout(() => nameInput.focus(), 160);
     return;
   }
@@ -1182,7 +1235,7 @@ mainActionBtn.addEventListener("click", handleMainAction);
 
 phoneInput.addEventListener("focus", () => {
   if (!phoneInput.value.trim()) {
-    phoneInput.value = "+";
+    phoneInput.value = "+375 ";
   }
 });
 
