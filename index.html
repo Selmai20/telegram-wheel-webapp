@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+  />
+
+  <meta name="theme-color" content="#050406" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <title>ELIT REMONT</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="style.css" />
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="app-bg">
+    <div class="app-bg-pattern"></div>
+    <div class="app-bg-vignette"></div>
+    <div class="light light-1"></div>
+    <div class="light light-2"></div>
+  </div>
+
+  <main class="app-shell">
+    <section id="splashScene" class="scene splash-scene active">
+      <div class="splash-content">
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3.2 14.55 8.6l5.8.86-4.2 4.1.99 5.8L12 16.6l-5.14 2.76.99-5.8-4.2-4.1 5.8-.86L12 3.2Z"/>
+          </svg>
+        </div>
+
+        <div class="splash-brand">ELIT REMONT</div>
+        <div class="splash-subtitle">колесо подарков</div>
+
+        <div class="app-loader">
+          <div id="loaderProgress" class="app-loader-progress"></div>
+        </div>
+
+        <div id="loaderText" class="loader-text">Подготавливаем приложение...</div>
+      </div>
+    </section>
+
+    <section id="mainScene" class="scene main-scene">
+      <header class="app-header">
+        <div class="brand-mini">
+          <div class="brand-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3.2 14.55 8.6l5.8.86-4.2 4.1.99 5.8L12 16.6l-5.14 2.76.99-5.8-4.2-4.1 5.8-.86L12 3.2Z"/>
+            </svg>
+          </div>
+
+          <div>
+            <div class="brand-title">ELIT REMONT</div>
+            <div id="sceneLabel" class="brand-status">подарок для клиента</div>
+          </div>
+        </div>
+
+        <button id="soundBtn" class="icon-button" aria-label="Звук">
+          <svg id="soundOnIcon" viewBox="0 0 24 24">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"/>
+            <path d="M16 9.5a4 4 0 0 1 0 5"/>
+            <path d="M18.5 7a7 7 0 0 1 0 10"/>
+          </svg>
+          <svg id="soundOffIcon" class="hidden" viewBox="0 0 24 24">
+            <path d="M4 9v6h4l5 4V5L8 9H4Z"/>
+            <path d="M19 9l-4 4"/>
+            <path d="M15 9l4 4"/>
+          </svg>
+        </button>
+      </header>
+
+      <div id="sceneHost" class="scene-host">
+        <section id="wheelView" class="app-view wheel-view active-view">
+          <div class="view-kicker">Каждый играет — каждый выигрывает</div>
+          <h1>Колесо подарков</h1>
+          <p>Нажмите в центр колеса и получите бонус для ремонта.</p>
+
+          <div class="wheel-zone">
+            <div class="wheel-aura"></div>
+
+            <div class="pointer">
+              <div class="pointer-cap"></div>
+              <div class="pointer-tip"></div>
+            </div>
+
+            <canvas id="wheel" width="680" height="680"></canvas>
+
+            <button id="spinBtn" class="spin-button">
+              <span>Крутить</span>
+              <small>1 попытка</small>
+            </button>
+          </div>
+
+          <div id="statusText" class="small-status">Колесо готово</div>
+        </section>
+
+        <section id="prizeView" class="app-view prize-view">
+          <div class="big-symbol">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 12v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8"/>
+              <path d="M2 7h20v5H2z"/>
+              <path d="M12 22V7"/>
+              <path d="M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7Z"/>
+              <path d="M12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7Z"/>
+            </svg>
+          </div>
+
+          <div class="view-kicker">Ваш подарок</div>
+          <h2 id="prizeTitle">Подарок</h2>
+          <p>Подарок закреплён предварительно. Осталось оставить контакты.</p>
+        </section>
+
+        <section id="contactView" class="app-view contact-view">
+          <div class="view-kicker">Контактные данные</div>
+          <h2>Куда с вами связаться?</h2>
+          <p>Введите имя и телефон. В финальной версии данные уйдут админу в Telegram.</p>
+
+          <label class="field">
+            <span>Ваше имя</span>
+            <input id="nameInput" type="text" placeholder="Например, Иван" autocomplete="name" />
+          </label>
+
+          <label class="field">
+            <span>Телефон</span>
+            <input id="phoneInput" type="tel" placeholder="+371..." autocomplete="tel" />
+          </label>
+
+          <div id="errorText" class="error-text"></div>
+        </section>
+
+        <section id="successView" class="app-view success-view">
+          <div class="big-symbol success">
+            <svg viewBox="0 0 24 24">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+          </div>
+
+          <div class="view-kicker">Готово</div>
+          <h2>Спасибо!</h2>
+          <p>Заявка принята. С вами скоро свяжутся.</p>
+        </section>
+      </div>
+
+      <footer class="action-bar">
+        <button id="mainActionBtn" class="main-action hidden">Продолжить</button>
+        <button id="resetDemoBtn" class="reset-demo">Сбросить демо</button>
+      </footer>
+    </section>
+  </main>
+
+  <div id="confetti"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
