@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-final-v13",
+  variant: "premium-gold-final-v14",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -784,107 +784,78 @@ function getPhoneUtils() {
   return window.libphonenumber || window.libphonenumberJs || window.libphonenumberJS || null;
 }
 
-// Calling code -> allowed total digits INCLUDING country code.
-// Это не заменяет libphonenumber-js, а только жёстко не даёт физически ввести лишние цифры.
-// Для остальных стран остаётся стандарт E.164 максимум 15 цифр + проверка libphonenumber-js.
+// Жёсткие лимиты: количество цифр ВМЕСТЕ с кодом страны.
+// +375 29 123 45 67 = 12 цифр: 375291234567.
+// После 12-й цифры ввод физически запрещён.
 const COUNTRY_TOTAL_DIGITS_LIMITS = [
-  { code: "375", lengths: [12] },       // Belarus: +375 29 123 45 67
-  { code: "371", lengths: [11] },       // Latvia
-  { code: "370", lengths: [11] },       // Lithuania
-  { code: "372", lengths: [10, 11] },   // Estonia
-  { code: "7", lengths: [11] },         // RU/KZ
-  { code: "380", lengths: [12] },       // Ukraine
-  { code: "48", lengths: [11] },        // Poland
-  { code: "49", lengths: [10, 11, 12, 13] }, // Germany
-  { code: "44", lengths: [12] },        // UK most mobile/landline
-  { code: "33", lengths: [11] },        // France
-  { code: "34", lengths: [11] },        // Spain
-  { code: "39", lengths: [11, 12] },    // Italy
-  { code: "1", lengths: [11] },         // US/Canada
-  { code: "90", lengths: [12] },        // Turkey
-  { code: "995", lengths: [12] },       // Georgia
-  { code: "374", lengths: [11] },       // Armenia
-  { code: "994", lengths: [12] },       // Azerbaijan
-  { code: "998", lengths: [12] },       // Uzbekistan
-  { code: "996", lengths: [12] },       // Kyrgyzstan
-  { code: "992", lengths: [12] },       // Tajikistan
-  { code: "993", lengths: [11] },       // Turkmenistan
-  { code: "971", lengths: [12] },       // UAE
-  { code: "972", lengths: [11, 12] },   // Israel
-  { code: "86", lengths: [13] },        // China
-  { code: "81", lengths: [11, 12] },    // Japan
-  { code: "82", lengths: [11, 12] },    // South Korea
-  { code: "91", lengths: [12] },        // India
-  { code: "55", lengths: [12, 13] },    // Brazil
-  { code: "52", lengths: [12] },        // Mexico
-  { code: "61", lengths: [11] },        // Australia
+  { code: "375", max: 12, min: 12 }, // Belarus
+  { code: "371", max: 11, min: 11 }, // Latvia
+  { code: "370", max: 11, min: 11 }, // Lithuania
+  { code: "372", max: 11, min: 10 }, // Estonia
+  { code: "7", max: 11, min: 11 },   // RU/KZ
+  { code: "380", max: 12, min: 12 }, // Ukraine
+  { code: "48", max: 11, min: 11 },  // Poland
+  { code: "49", max: 13, min: 10 },  // Germany
+  { code: "44", max: 12, min: 12 },  // UK
+  { code: "33", max: 11, min: 11 },  // France
+  { code: "34", max: 11, min: 11 },  // Spain
+  { code: "39", max: 12, min: 11 },  // Italy
+  { code: "1", max: 11, min: 11 },   // US/Canada
+  { code: "90", max: 12, min: 12 },  // Turkey
+  { code: "995", max: 12, min: 12 }, // Georgia
+  { code: "374", max: 11, min: 11 }, // Armenia
+  { code: "994", max: 12, min: 12 }, // Azerbaijan
+  { code: "998", max: 12, min: 12 }, // Uzbekistan
+  { code: "996", max: 12, min: 12 }, // Kyrgyzstan
+  { code: "992", max: 12, min: 12 }, // Tajikistan
+  { code: "993", max: 11, min: 11 }, // Turkmenistan
 ];
 
 function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
-function detectLimitInfo(rawDigits) {
+function detectCountryLimit(rawDigits) {
   const digits = digitsOnly(rawDigits);
 
-  const matched = COUNTRY_TOTAL_DIGITS_LIMITS
+  return COUNTRY_TOTAL_DIGITS_LIMITS
     .filter(item => digits.startsWith(item.code))
-    .sort((a, b) => b.code.length - a.code.length)[0];
-
-  if (!matched) {
-    return null;
-  }
-
-  return {
-    code: matched.code,
-    min: Math.min(...matched.lengths),
-    max: Math.max(...matched.lengths),
-    lengths: matched.lengths
-  };
+    .sort((a, b) => b.code.length - a.code.length)[0] || null;
 }
 
-function getLibraryLengthResult(rawDigits) {
-  const phoneUtils = getPhoneUtils();
+function clampDigits(rawDigits) {
+  let digits = digitsOnly(rawDigits);
 
-  if (!phoneUtils?.validatePhoneNumberLength) {
-    return null;
+  const limit = detectCountryLimit(digits);
+  if (limit) {
+    return digits.slice(0, limit.max);
   }
 
-  try {
-    return phoneUtils.validatePhoneNumberLength("+" + rawDigits);
-  } catch {
-    return null;
-  }
+  // Пока код страны не определён — международный максимум E.164.
+  return digits.slice(0, 15);
 }
 
-function trimPhoneDigitsToCountryLimit(rawDigits) {
-  let digits = digitsOnly(rawDigits).slice(0, 15);
+function formatBelarus(digits) {
+  // 375291234567 -> +375 29 123 45 67
+  const cc = digits.slice(0, 3);
+  const op = digits.slice(3, 5);
+  const a = digits.slice(5, 8);
+  const b = digits.slice(8, 10);
+  const c = digits.slice(10, 12);
 
-  const limitInfo = detectLimitInfo(digits);
-  if (limitInfo && digits.length > limitInfo.max) {
-    digits = digits.slice(0, limitInfo.max);
-  }
-
-  // Дополнительная защита через libphonenumber-js, когда библиотека может определить страну.
-  while (digits.length > 1) {
-    const result = getLibraryLengthResult(digits);
-
-    if (result !== "TOO_LONG") {
-      break;
-    }
-
-    digits = digits.slice(0, -1);
-  }
-
-  return digits;
+  return ["+" + cc, op, a, b, c].filter(Boolean).join(" ");
 }
 
 function fallbackPhoneMask(rawDigits) {
-  const digits = trimPhoneDigitsToCountryLimit(rawDigits);
+  const digits = clampDigits(rawDigits);
   if (!digits) return "+";
 
-  const limitInfo = detectLimitInfo(digits);
-  const countryCodeLength = limitInfo ? limitInfo.code.length : Math.min(3, digits.length);
+  if (digits.startsWith("375")) {
+    return formatBelarus(digits);
+  }
+
+  const limit = detectCountryLimit(digits);
+  const countryCodeLength = limit ? limit.code.length : Math.min(3, digits.length);
 
   const groups = [];
   let index = 0;
@@ -900,37 +871,29 @@ function fallbackPhoneMask(rawDigits) {
     index += size;
   }
 
-  if (index < digits.length) {
-    groups.push(digits.slice(index));
-  }
-
   return "+" + groups.filter(Boolean).join(" ");
 }
 
 function formatPhone(value) {
-  const rawDigits = digitsOnly(value);
+  const digits = clampDigits(value);
 
-  if (!rawDigits) {
+  if (!digits) {
     return "+";
   }
 
-  const trimmedDigits = trimPhoneDigitsToCountryLimit(rawDigits);
+  if (digits.startsWith("375")) {
+    return formatBelarus(digits);
+  }
+
   const phoneUtils = getPhoneUtils();
 
   if (phoneUtils?.AsYouType) {
     try {
-      const formatted = new phoneUtils.AsYouType().input("+" + trimmedDigits);
-      return formatted || ("+" + trimmedDigits);
+      return new phoneUtils.AsYouType().input("+" + digits) || ("+" + digits);
     } catch {}
   }
 
-  return fallbackPhoneMask(trimmedDigits);
-}
-
-function wouldExceedCountryLimit(rawDigits) {
-  const digits = digitsOnly(rawDigits);
-  const trimmed = trimPhoneDigitsToCountryLimit(digits);
-  return trimmed.length < digits.length;
+  return fallbackPhoneMask(digits);
 }
 
 function validatePhone(phone) {
@@ -945,15 +908,16 @@ function validatePhone(phone) {
   }
 
   const digits = digitsOnly(clean);
-  const limitInfo = detectLimitInfo(digits);
+  const limit = detectCountryLimit(digits);
 
-  if (limitInfo && !limitInfo.lengths.includes(digits.length)) {
-    return {
-      valid: false,
-      message: digits.length < limitInfo.min
-        ? "Номер ещё не полный"
-        : "Лишние цифры в номере"
-    };
+  if (limit) {
+    if (digits.length < limit.min) {
+      return { valid: false, message: "Номер ещё не полный" };
+    }
+
+    if (digits.length > limit.max) {
+      return { valid: false, message: "Лишние цифры в номере" };
+    }
   }
 
   const phoneUtils = getPhoneUtils();
@@ -970,17 +934,11 @@ function validatePhone(phone) {
     }
 
     if (!parsed.isPossible()) {
-      return {
-        valid: false,
-        message: `Номер для страны ${parsed.country} ещё не полный`
-      };
+      return { valid: false, message: `Номер для страны ${parsed.country} ещё не полный` };
     }
 
     if (!parsed.isValid()) {
-      return {
-        valid: false,
-        message: `Проверьте номер страны ${parsed.country}`
-      };
+      return { valid: false, message: `Проверьте номер страны ${parsed.country}` };
     }
 
     return {
@@ -1013,11 +971,8 @@ function prefillTelegramData() {
 }
 
 function getExistingLead() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_LEAD_KEY) || "null");
-  } catch {
-    return null;
-  }
+  // Повторные заявки разрешены. Не блокируем пользователя после первой отправки.
+  return null;
 }
 
 function saveLead(name, phone) {
@@ -1248,27 +1203,49 @@ phoneInput.addEventListener("keydown", event => {
     return;
   }
 
-  if (!/^\d$/.test(event.key) && event.key !== "+") {
-    event.preventDefault();
-    return;
-  }
-
   if (event.key === "+") {
-    if (phoneInput.selectionStart !== 0 || phoneInput.value.includes("+")) {
+    if (phoneInput.value.includes("+")) {
       event.preventDefault();
     }
     return;
   }
 
-  const currentDigits = digitsOnly(phoneInput.value);
-  const selectionStart = phoneInput.selectionStart ?? phoneInput.value.length;
-  const selectionEnd = phoneInput.selectionEnd ?? phoneInput.value.length;
-  const selectedText = phoneInput.value.slice(selectionStart, selectionEnd);
-  const selectedDigits = digitsOnly(selectedText);
-  const predictedDigits =
-    currentDigits.slice(0, Math.max(0, currentDigits.length - selectedDigits.length)) + event.key;
+  if (!/^\d$/.test(event.key)) {
+    event.preventDefault();
+    return;
+  }
 
-  if (wouldExceedCountryLimit(predictedDigits)) {
+  const currentDigits = digitsOnly(phoneInput.value);
+  const selectedDigits = digitsOnly(
+    phoneInput.value.slice(
+      phoneInput.selectionStart ?? phoneInput.value.length,
+      phoneInput.selectionEnd ?? phoneInput.value.length
+    )
+  );
+
+  const baseDigits = selectedDigits.length
+    ? currentDigits.slice(0, currentDigits.length - selectedDigits.length)
+    : currentDigits;
+
+  const predictedDigits = baseDigits + event.key;
+  const clampedDigits = clampDigits(predictedDigits);
+
+  if (predictedDigits.length > clampedDigits.length) {
+    event.preventDefault();
+  }
+});
+
+phoneInput.addEventListener("beforeinput", event => {
+  if (!event.data || !/\d/.test(event.data)) {
+    return;
+  }
+
+  const currentDigits = digitsOnly(phoneInput.value);
+  const insertedDigits = digitsOnly(event.data);
+  const predictedDigits = currentDigits + insertedDigits;
+  const clampedDigits = clampDigits(predictedDigits);
+
+  if (predictedDigits.length > clampedDigits.length) {
     event.preventDefault();
   }
 });
@@ -1276,14 +1253,13 @@ phoneInput.addEventListener("keydown", event => {
 phoneInput.addEventListener("paste", event => {
   event.preventDefault();
   const pastedText = (event.clipboardData || window.clipboardData).getData("text");
-  const currentDigits = digitsOnly(phoneInput.value);
-  const nextDigits = trimPhoneDigitsToCountryLimit(currentDigits + digitsOnly(pastedText));
-  phoneInput.value = formatPhone("+" + nextDigits);
+  const nextDigits = clampDigits(digitsOnly(phoneInput.value) + digitsOnly(pastedText));
+  phoneInput.value = formatPhone(nextDigits);
 });
 
 phoneInput.addEventListener("input", () => {
-  const trimmedDigits = trimPhoneDigitsToCountryLimit(digitsOnly(phoneInput.value));
-  phoneInput.value = formatPhone("+" + trimmedDigits);
+  const clampedDigits = clampDigits(phoneInput.value);
+  phoneInput.value = formatPhone(clampedDigits);
 
   const check = validatePhone(phoneInput.value);
   if (check.valid) {
