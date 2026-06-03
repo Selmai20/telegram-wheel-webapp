@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-final-v8",
+  variant: "premium-gold-final-v9",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -748,68 +748,30 @@ function getPhoneUtils() {
   return window.libphonenumber || window.libphonenumberJs || window.libphonenumberJS || null;
 }
 
-let lastPhoneValue = "";
+let lastAcceptedPhoneValue = "+";
 
 function digitsOnly(value) {
-  return String(value || "").replace(/\D/g, "").slice(0, 18);
+  return String(value || "").replace(/\D/g, "");
 }
 
-function formatByLibrary(rawPlusNumber) {
+function getLengthResult(rawDigits) {
   const phoneUtils = getPhoneUtils();
+  if (!phoneUtils?.validatePhoneNumberLength) return null;
 
-  if (phoneUtils?.AsYouType) {
-    try {
-      return new phoneUtils.AsYouType().input(rawPlusNumber);
-    } catch {}
+  try {
+    return phoneUtils.validatePhoneNumberLength("+" + rawDigits);
+  } catch {
+    return null;
   }
-
-  return fallbackPhoneMask(rawPlusNumber);
 }
 
-function fallbackPhoneMask(value) {
-  const digits = digitsOnly(value).slice(0, 15);
-  if (!digits) return "+";
-
-  const groups = [];
-  let index = 0;
-  const ccLen = Math.min(3, digits.length);
-  groups.push(digits.slice(index, index + ccLen));
-  index += ccLen;
-
-  const pattern = [2, 3, 4, 3];
-  for (const size of pattern) {
-    if (index >= digits.length) break;
-    groups.push(digits.slice(index, index + size));
-    index += size;
-  }
-
-  if (index < digits.length) groups.push(digits.slice(index));
-  return "+" + groups.filter(Boolean).join(" ");
-}
-
-function trimPhoneToCountryLimit(rawDigits) {
-  const phoneUtils = getPhoneUtils();
-  let digits = String(rawDigits || "").replace(/\D/g, "");
-
-  if (digits.length > 15) {
-    digits = digits.slice(0, 15);
-  }
-
-  if (!phoneUtils?.validatePhoneNumberLength) {
-    return digits;
-  }
+function trimPhoneDigitsToCountryLimit(rawDigits) {
+  let digits = digitsOnly(rawDigits).slice(0, 15);
 
   while (digits.length > 1) {
-    const testNumber = "+" + digits;
-    let lengthResult = null;
+    const result = getLengthResult(digits);
 
-    try {
-      lengthResult = phoneUtils.validatePhoneNumberLength(testNumber);
-    } catch {
-      break;
-    }
-
-    if (lengthResult !== "TOO_LONG") {
+    if (result !== "TOO_LONG") {
       break;
     }
 
@@ -819,19 +781,61 @@ function trimPhoneToCountryLimit(rawDigits) {
   return digits;
 }
 
+function fallbackPhoneMask(rawDigits) {
+  const digits = trimPhoneDigitsToCountryLimit(rawDigits);
+  if (!digits) return "+";
+
+  const groups = [];
+  let index = 0;
+
+  const countryCodeLength = Math.min(3, digits.length);
+  groups.push(digits.slice(index, index + countryCodeLength));
+  index += countryCodeLength;
+
+  const pattern = [2, 3, 2, 2, 3];
+
+  for (const size of pattern) {
+    if (index >= digits.length) break;
+    groups.push(digits.slice(index, index + size));
+    index += size;
+  }
+
+  if (index < digits.length) {
+    groups.push(digits.slice(index));
+  }
+
+  return "+" + groups.filter(Boolean).join(" ");
+}
+
 function formatPhone(value) {
   const rawDigits = digitsOnly(value);
 
   if (!rawDigits) {
-    lastPhoneValue = "+";
+    lastAcceptedPhoneValue = "+";
     return "+";
   }
 
-  const trimmedDigits = trimPhoneToCountryLimit(rawDigits);
-  const formatted = formatByLibrary("+" + trimmedDigits);
+  const trimmedDigits = trimPhoneDigitsToCountryLimit(rawDigits);
 
-  lastPhoneValue = formatted || ("+" + trimmedDigits);
-  return lastPhoneValue;
+  if (trimmedDigits.length < rawDigits.length) {
+    const formattedTrimmed = formatPhone("+" + trimmedDigits);
+    lastAcceptedPhoneValue = formattedTrimmed;
+    return formattedTrimmed;
+  }
+
+  const phoneUtils = getPhoneUtils();
+
+  if (phoneUtils?.AsYouType) {
+    try {
+      const formatted = new phoneUtils.AsYouType().input("+" + trimmedDigits);
+      lastAcceptedPhoneValue = formatted || ("+" + trimmedDigits);
+      return lastAcceptedPhoneValue;
+    } catch {}
+  }
+
+  const fallback = fallbackPhoneMask(trimmedDigits);
+  lastAcceptedPhoneValue = fallback;
+  return fallback;
 }
 
 function validatePhone(phone) {
@@ -890,7 +894,7 @@ function validatePhone(phone) {
     return { valid: false, message: "Слишком длинный номер" };
   }
 
-  return { valid: true, normalized: fallbackPhoneMask(clean) };
+  return { valid: true, normalized: fallbackPhoneMask(digits) };
 }
 
 function prefillTelegramData() {
@@ -1119,12 +1123,55 @@ mainActionBtn.addEventListener("click", handleMainAction);
 phoneInput.addEventListener("focus", () => {
   if (!phoneInput.value.trim()) {
     phoneInput.value = "+";
+    lastAcceptedPhoneValue = "+";
+  }
+});
+
+phoneInput.addEventListener("keydown", event => {
+  const allowedControlKeys = [
+    "Backspace",
+    "Delete",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Tab",
+    "Home",
+    "End"
+  ];
+
+  if (allowedControlKeys.includes(event.key) || event.ctrlKey || event.metaKey) {
+    return;
+  }
+
+  if (!/^\d$/.test(event.key) && event.key !== "+") {
+    event.preventDefault();
+    return;
+  }
+
+  const currentDigits = digitsOnly(phoneInput.value);
+  const predictedDigits = event.key === "+" ? currentDigits : currentDigits + event.key;
+  const trimmed = trimPhoneDigitsToCountryLimit(predictedDigits);
+
+  if (trimmed.length < predictedDigits.length) {
+    event.preventDefault();
   }
 });
 
 phoneInput.addEventListener("input", () => {
-  const formatted = formatPhone(phoneInput.value);
-  phoneInput.value = formatted;
+  const before = phoneInput.value;
+  const rawDigits = digitsOnly(before);
+  const trimmedDigits = trimPhoneDigitsToCountryLimit(rawDigits);
+
+  if (trimmedDigits.length < rawDigits.length) {
+    phoneInput.value = formatPhone("+" + trimmedDigits);
+  } else {
+    phoneInput.value = formatPhone(before);
+  }
+
+  if (!phoneInput.value.startsWith("+")) {
+    phoneInput.value = "+" + digitsOnly(phoneInput.value);
+  }
 
   const check = validatePhone(phoneInput.value);
   if (check.valid) {
