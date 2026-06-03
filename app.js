@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-app-mode-v7",
+  variant: "premium-gold-final-v8",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -725,7 +725,6 @@ function createConfetti() {
 
 function renderPossiblePrizes() {
   if (!possiblePrizes) return;
-  possiblePrizes.innerHTML = "";
 
   const iconMap = {
     tile: "▦",
@@ -737,15 +736,12 @@ function renderPossiblePrizes() {
     measure: "⌁"
   };
 
-  CONFIG.prizes.forEach(prize => {
-    const chip = document.createElement("div");
-    chip.className = "prize-chip";
-    chip.innerHTML = `
+  possiblePrizes.innerHTML = CONFIG.prizes.map(prize => `
+    <div class="prize-chip">
       <span class="prize-chip-icon">${iconMap[prize.iconType] || "◆"}</span>
       <span class="prize-chip-text">${prize.label}</span>
-    `;
-    possiblePrizes.appendChild(chip);
-  });
+    </div>
+  `).join("");
 }
 
 function getPhoneUtils() {
@@ -1092,13 +1088,9 @@ async function handleMainAction() {
       tg.sendData(JSON.stringify({
         prize: lead.prize,
         name: lead.name,
-        phone: lead.phone,
-        source: lead.source,
-        createdAt: lead.createdAt
+        phone: lead.phone
       }));
     }
-
-    await notifyAdminFallback(lead);
 
     await goToView(successView, "success", "готово", null);
     createConfetti();

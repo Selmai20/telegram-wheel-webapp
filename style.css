@@ -997,3 +997,185 @@ body {
     padding-right: 10px;
   }
 }
+
+
+/* v8 Telegram-safe layout fix */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.main-scene {
+  padding-top: calc(34px + var(--safe-top)) !important;
+  padding-bottom: calc(12px + var(--safe-bottom)) !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.app-header {
+  min-height: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+}
+
+.scene-host {
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-view {
+  width: 100%;
+  max-width: 100%;
+  left: 0;
+  right: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  padding-bottom: 18px;
+}
+
+.app-view::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-view {
+  align-content: start !important;
+  padding-top: 2px !important;
+  padding-bottom: 26px !important;
+}
+
+.wheel-zone {
+  width: min(100%, 345px) !important;
+  margin-top: 4px !important;
+}
+
+.spin-button small {
+  display: none !important;
+}
+
+.action-bar {
+  min-height: 60px !important;
+  flex: 0 0 auto;
+}
+
+.possible-prizes-block {
+  width: 100%;
+  max-width: min(430px, calc(100vw - 26px));
+  margin: 12px auto 0;
+  padding: 12px 0 12px;
+  overflow: visible;
+}
+
+.possible-prizes-title {
+  margin-bottom: 10px;
+}
+
+.possible-prizes {
+  width: 100%;
+  max-width: 100%;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  padding: 0 4px 12px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.possible-prizes::-webkit-scrollbar {
+  display: none;
+}
+
+.prize-chip {
+  flex: 0 0 168px !important;
+  min-height: 52px;
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 11px;
+  border-radius: 16px;
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(255,240,184,0.105), rgba(255,240,184,0.052));
+  border: 1px solid rgba(255,240,184,0.18);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  scroll-snap-align: start;
+}
+
+.prize-chip-icon {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: #180C07;
+  background: linear-gradient(135deg, #ffffff, var(--gold-light) 38%, var(--gold));
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.prize-chip-text {
+  display: block;
+  font-size: 12px;
+  line-height: 1.18;
+  font-weight: 820;
+}
+
+@media (max-height: 720px) {
+  .main-scene {
+    padding-top: calc(28px + var(--safe-top)) !important;
+  }
+
+  .app-header {
+    min-height: 52px;
+    height: 52px;
+  }
+
+  .app-view h1 {
+    font-size: 30px !important;
+  }
+
+  .app-view p {
+    font-size: 12px !important;
+  }
+
+  .wheel-zone {
+    width: min(100%, 300px) !important;
+  }
+
+  .possible-prizes-block {
+    margin-top: 4px;
+  }
+
+  .prize-chip {
+    flex-basis: 145px !important;
+    min-height: 44px;
+  }
+}
