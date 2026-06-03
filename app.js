@@ -15,7 +15,7 @@ document.addEventListener("gesturestart", event => event.preventDefault());
 
 const CONFIG = {
   company: "ELIT REMONT",
-  variant: "premium-gold-final-v9",
+  variant: "premium-gold-final-v13",
   sourceDefault: "github-pages-demo",
   prizes: [
     {
@@ -170,10 +170,47 @@ async function fakeLoad() {
   applyAlreadyUsedState();
 }
 
+function hideMainAction() {
+  mainActionBtn.classList.add("hidden");
+  mainActionBtn.style.opacity = "";
+  mainActionBtn.style.transform = "";
+}
+
+async function showMainAction(text) {
+  mainActionBtn.textContent = text;
+  mainActionBtn.disabled = false;
+  mainActionBtn.classList.remove("hidden");
+
+  await mainActionBtn.animate(
+    [
+      { opacity: 0, transform: "translateY(22px) scale(0.96)" },
+      { opacity: 1, transform: "translateY(-4px) scale(1.012)", offset: 0.74 },
+      { opacity: 1, transform: "translateY(0) scale(1)" }
+    ],
+    {
+      duration: 520,
+      easing: "cubic-bezier(0.22, 1.12, 0.32, 1)",
+      fill: "both"
+    }
+  ).finished;
+}
+
 async function goToView(nextView, state, label, actionText = null) {
   if (currentView === nextView) return;
 
   mainActionBtn.disabled = true;
+
+  if (!mainActionBtn.classList.contains("hidden")) {
+    await mainActionBtn.animate(
+      [
+        { opacity: 1, transform: "translateY(0) scale(1)" },
+        { opacity: 0, transform: "translateY(18px) scale(0.96)" }
+      ],
+      { duration: 220, easing: "ease", fill: "both" }
+    ).finished;
+    hideMainAction();
+  }
+
   const previousView = currentView;
 
   await previousView.animate(
@@ -203,10 +240,9 @@ async function goToView(nextView, state, label, actionText = null) {
   currentState = state;
 
   if (actionText) {
-    mainActionBtn.textContent = actionText;
-    mainActionBtn.classList.remove("hidden");
+    await showMainAction(actionText);
   } else {
-    mainActionBtn.classList.add("hidden");
+    hideMainAction();
   }
 
   mainActionBtn.disabled = false;
@@ -748,15 +784,71 @@ function getPhoneUtils() {
   return window.libphonenumber || window.libphonenumberJs || window.libphonenumberJS || null;
 }
 
-let lastAcceptedPhoneValue = "+";
+// Calling code -> allowed total digits INCLUDING country code.
+// Это не заменяет libphonenumber-js, а только жёстко не даёт физически ввести лишние цифры.
+// Для остальных стран остаётся стандарт E.164 максимум 15 цифр + проверка libphonenumber-js.
+const COUNTRY_TOTAL_DIGITS_LIMITS = [
+  { code: "375", lengths: [12] },       // Belarus: +375 29 123 45 67
+  { code: "371", lengths: [11] },       // Latvia
+  { code: "370", lengths: [11] },       // Lithuania
+  { code: "372", lengths: [10, 11] },   // Estonia
+  { code: "7", lengths: [11] },         // RU/KZ
+  { code: "380", lengths: [12] },       // Ukraine
+  { code: "48", lengths: [11] },        // Poland
+  { code: "49", lengths: [10, 11, 12, 13] }, // Germany
+  { code: "44", lengths: [12] },        // UK most mobile/landline
+  { code: "33", lengths: [11] },        // France
+  { code: "34", lengths: [11] },        // Spain
+  { code: "39", lengths: [11, 12] },    // Italy
+  { code: "1", lengths: [11] },         // US/Canada
+  { code: "90", lengths: [12] },        // Turkey
+  { code: "995", lengths: [12] },       // Georgia
+  { code: "374", lengths: [11] },       // Armenia
+  { code: "994", lengths: [12] },       // Azerbaijan
+  { code: "998", lengths: [12] },       // Uzbekistan
+  { code: "996", lengths: [12] },       // Kyrgyzstan
+  { code: "992", lengths: [12] },       // Tajikistan
+  { code: "993", lengths: [11] },       // Turkmenistan
+  { code: "971", lengths: [12] },       // UAE
+  { code: "972", lengths: [11, 12] },   // Israel
+  { code: "86", lengths: [13] },        // China
+  { code: "81", lengths: [11, 12] },    // Japan
+  { code: "82", lengths: [11, 12] },    // South Korea
+  { code: "91", lengths: [12] },        // India
+  { code: "55", lengths: [12, 13] },    // Brazil
+  { code: "52", lengths: [12] },        // Mexico
+  { code: "61", lengths: [11] },        // Australia
+];
 
 function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
-function getLengthResult(rawDigits) {
+function detectLimitInfo(rawDigits) {
+  const digits = digitsOnly(rawDigits);
+
+  const matched = COUNTRY_TOTAL_DIGITS_LIMITS
+    .filter(item => digits.startsWith(item.code))
+    .sort((a, b) => b.code.length - a.code.length)[0];
+
+  if (!matched) {
+    return null;
+  }
+
+  return {
+    code: matched.code,
+    min: Math.min(...matched.lengths),
+    max: Math.max(...matched.lengths),
+    lengths: matched.lengths
+  };
+}
+
+function getLibraryLengthResult(rawDigits) {
   const phoneUtils = getPhoneUtils();
-  if (!phoneUtils?.validatePhoneNumberLength) return null;
+
+  if (!phoneUtils?.validatePhoneNumberLength) {
+    return null;
+  }
 
   try {
     return phoneUtils.validatePhoneNumberLength("+" + rawDigits);
@@ -768,8 +860,14 @@ function getLengthResult(rawDigits) {
 function trimPhoneDigitsToCountryLimit(rawDigits) {
   let digits = digitsOnly(rawDigits).slice(0, 15);
 
+  const limitInfo = detectLimitInfo(digits);
+  if (limitInfo && digits.length > limitInfo.max) {
+    digits = digits.slice(0, limitInfo.max);
+  }
+
+  // Дополнительная защита через libphonenumber-js, когда библиотека может определить страну.
   while (digits.length > 1) {
-    const result = getLengthResult(digits);
+    const result = getLibraryLengthResult(digits);
 
     if (result !== "TOO_LONG") {
       break;
@@ -785,10 +883,12 @@ function fallbackPhoneMask(rawDigits) {
   const digits = trimPhoneDigitsToCountryLimit(rawDigits);
   if (!digits) return "+";
 
+  const limitInfo = detectLimitInfo(digits);
+  const countryCodeLength = limitInfo ? limitInfo.code.length : Math.min(3, digits.length);
+
   const groups = [];
   let index = 0;
 
-  const countryCodeLength = Math.min(3, digits.length);
   groups.push(digits.slice(index, index + countryCodeLength));
   index += countryCodeLength;
 
@@ -811,31 +911,26 @@ function formatPhone(value) {
   const rawDigits = digitsOnly(value);
 
   if (!rawDigits) {
-    lastAcceptedPhoneValue = "+";
     return "+";
   }
 
   const trimmedDigits = trimPhoneDigitsToCountryLimit(rawDigits);
-
-  if (trimmedDigits.length < rawDigits.length) {
-    const formattedTrimmed = formatPhone("+" + trimmedDigits);
-    lastAcceptedPhoneValue = formattedTrimmed;
-    return formattedTrimmed;
-  }
-
   const phoneUtils = getPhoneUtils();
 
   if (phoneUtils?.AsYouType) {
     try {
       const formatted = new phoneUtils.AsYouType().input("+" + trimmedDigits);
-      lastAcceptedPhoneValue = formatted || ("+" + trimmedDigits);
-      return lastAcceptedPhoneValue;
+      return formatted || ("+" + trimmedDigits);
     } catch {}
   }
 
-  const fallback = fallbackPhoneMask(trimmedDigits);
-  lastAcceptedPhoneValue = fallback;
-  return fallback;
+  return fallbackPhoneMask(trimmedDigits);
+}
+
+function wouldExceedCountryLimit(rawDigits) {
+  const digits = digitsOnly(rawDigits);
+  const trimmed = trimPhoneDigitsToCountryLimit(digits);
+  return trimmed.length < digits.length;
 }
 
 function validatePhone(phone) {
@@ -847,6 +942,18 @@ function validatePhone(phone) {
 
   if (!clean.startsWith("+")) {
     return { valid: false, message: "Номер должен начинаться с + и кода страны" };
+  }
+
+  const digits = digitsOnly(clean);
+  const limitInfo = detectLimitInfo(digits);
+
+  if (limitInfo && !limitInfo.lengths.includes(digits.length)) {
+    return {
+      valid: false,
+      message: digits.length < limitInfo.min
+        ? "Номер ещё не полный"
+        : "Лишние цифры в номере"
+    };
   }
 
   const phoneUtils = getPhoneUtils();
@@ -883,8 +990,6 @@ function validatePhone(phone) {
       countryCode: parsed.countryCallingCode
     };
   }
-
-  const digits = digitsOnly(clean);
 
   if (digits.length < 8) {
     return { valid: false, message: "Слишком короткий номер" };
@@ -1123,7 +1228,6 @@ mainActionBtn.addEventListener("click", handleMainAction);
 phoneInput.addEventListener("focus", () => {
   if (!phoneInput.value.trim()) {
     phoneInput.value = "+";
-    lastAcceptedPhoneValue = "+";
   }
 });
 
@@ -1149,29 +1253,37 @@ phoneInput.addEventListener("keydown", event => {
     return;
   }
 
-  const currentDigits = digitsOnly(phoneInput.value);
-  const predictedDigits = event.key === "+" ? currentDigits : currentDigits + event.key;
-  const trimmed = trimPhoneDigitsToCountryLimit(predictedDigits);
+  if (event.key === "+") {
+    if (phoneInput.selectionStart !== 0 || phoneInput.value.includes("+")) {
+      event.preventDefault();
+    }
+    return;
+  }
 
-  if (trimmed.length < predictedDigits.length) {
+  const currentDigits = digitsOnly(phoneInput.value);
+  const selectionStart = phoneInput.selectionStart ?? phoneInput.value.length;
+  const selectionEnd = phoneInput.selectionEnd ?? phoneInput.value.length;
+  const selectedText = phoneInput.value.slice(selectionStart, selectionEnd);
+  const selectedDigits = digitsOnly(selectedText);
+  const predictedDigits =
+    currentDigits.slice(0, Math.max(0, currentDigits.length - selectedDigits.length)) + event.key;
+
+  if (wouldExceedCountryLimit(predictedDigits)) {
     event.preventDefault();
   }
 });
 
+phoneInput.addEventListener("paste", event => {
+  event.preventDefault();
+  const pastedText = (event.clipboardData || window.clipboardData).getData("text");
+  const currentDigits = digitsOnly(phoneInput.value);
+  const nextDigits = trimPhoneDigitsToCountryLimit(currentDigits + digitsOnly(pastedText));
+  phoneInput.value = formatPhone("+" + nextDigits);
+});
+
 phoneInput.addEventListener("input", () => {
-  const before = phoneInput.value;
-  const rawDigits = digitsOnly(before);
-  const trimmedDigits = trimPhoneDigitsToCountryLimit(rawDigits);
-
-  if (trimmedDigits.length < rawDigits.length) {
-    phoneInput.value = formatPhone("+" + trimmedDigits);
-  } else {
-    phoneInput.value = formatPhone(before);
-  }
-
-  if (!phoneInput.value.startsWith("+")) {
-    phoneInput.value = "+" + digitsOnly(phoneInput.value);
-  }
+  const trimmedDigits = trimPhoneDigitsToCountryLimit(digitsOnly(phoneInput.value));
+  phoneInput.value = formatPhone("+" + trimmedDigits);
 
   const check = validatePhone(phoneInput.value);
   if (check.valid) {

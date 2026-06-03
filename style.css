@@ -1179,3 +1179,14 @@ body {
     min-height: 44px;
   }
 }
+
+
+/* v13 action button animation polish */
+.main-action {
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+
+.action-bar {
+  overflow: visible;
+}
